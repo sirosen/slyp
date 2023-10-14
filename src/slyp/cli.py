@@ -38,6 +38,14 @@ E103: unparenthesized multiline string concat in collection type
         "beta",
         "gamma"
     }
+
+
+W200: two AST branches have identical contents
+    if x is True:
+        return y + 1
+    else:
+        # some comment
+        return y + 1
 """
 
 
