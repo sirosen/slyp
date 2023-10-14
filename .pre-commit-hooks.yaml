@@ -1,0 +1,6 @@
+- id: slyp
+  name: slyp
+  description: "Run slyp on python files"
+  entry: slyp
+  language: python
+  types: [python]
