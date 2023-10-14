@@ -1,5 +1,7 @@
 # SLYP
 
+Stephen Lints Your Python
+
 [![PyPI - Version](https://img.shields.io/pypi/v/click-type-test.svg)](https://pypi.org/project/click-type-test)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/click-type-test.svg)](https://pypi.org/project/click-type-test)
 
@@ -18,6 +20,11 @@
 :wave:
 
 I'm Stephen. I'm going to lint your Python code.
+
+I wrote this linter because nothing else out there implemented these rules, and
+some of them needed CST (rather than AST), so there was no plugin framework
+(e.g. flake8 plugins) which I could use.
+I hope it helps you catch slyp-ups.
 
 ## Installation
 
