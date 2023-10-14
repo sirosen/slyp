@@ -62,7 +62,7 @@ def _exempt(lines: list[bytes], lineno: int, code: str) -> bool:
     return False
 
 
-def _clear_errors():
+def _clear_errors() -> None:
     # testsuite hook for resetting errors for clean reporting
     from .abstract import _clear_visitor_errors as clear_cst_errors
     from .concrete import _clear_visitor_errors as clear_ast_errors

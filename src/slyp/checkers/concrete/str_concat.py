@@ -81,7 +81,7 @@ class StrConcatErrorCollector(libcst.CSTVisitor):
     def __init__(self) -> None:
         super().__init__()
         self.filename: str = "<unset>"
-        self.errors: set[tuple[int, str]] = set()
+        self.errors: set[tuple[int, str, str]] = set()
 
     def visit_ConcatenatedString(self, node: libcst.ConcatenatedString) -> None:
         # check for 'unnecessary string concat' situations
@@ -117,19 +117,28 @@ class StrConcatErrorCollector(libcst.CSTVisitor):
 
     def visit_Tuple(self, node: libcst.Tuple) -> None:
         if libcst.matchers.matches(
-            node, libcst.matchers.Tuple(elements=E103_IN_ELEMENT_LIST_MATCHER)
+            node,
+            libcst.matchers.Tuple(
+                elements=E103_IN_ELEMENT_LIST_MATCHER  # type: ignore[arg-type]
+            ),
         ):
             self._collect_e103(node)
 
     def visit_List(self, node: libcst.List) -> None:
         if libcst.matchers.matches(
-            node, libcst.matchers.List(elements=E103_IN_ELEMENT_LIST_MATCHER)
+            node,
+            libcst.matchers.List(
+                elements=E103_IN_ELEMENT_LIST_MATCHER  # type: ignore[arg-type]
+            ),
         ):
             self._collect_e103(node)
 
     def visit_Set(self, node: libcst.Set) -> None:
         if libcst.matchers.matches(
-            node, libcst.matchers.Set(elements=E103_IN_ELEMENT_LIST_MATCHER)
+            node,
+            libcst.matchers.Set(
+                elements=E103_IN_ELEMENT_LIST_MATCHER  # type: ignore[arg-type]
+            ),
         ):
             self._collect_e103(node)
 
