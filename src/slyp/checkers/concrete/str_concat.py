@@ -116,15 +116,21 @@ class StrConcatErrorCollector(libcst.CSTVisitor):
             self.errors.add((lpos.line, self.filename, "E102"))
 
     def visit_Tuple(self, node: libcst.Tuple) -> None:
-        if libcst.matchers.matches(node.elements, E103_IN_ELEMENT_LIST_MATCHER):
+        if libcst.matchers.matches(
+            node, libcst.matchers.Tuple(elements=E103_IN_ELEMENT_LIST_MATCHER)
+        ):
             self._collect_e103(node)
 
     def visit_List(self, node: libcst.List) -> None:
-        if libcst.matchers.matches(node.elements, E103_IN_ELEMENT_LIST_MATCHER):
+        if libcst.matchers.matches(
+            node, libcst.matchers.List(elements=E103_IN_ELEMENT_LIST_MATCHER)
+        ):
             self._collect_e103(node)
 
     def visit_Set(self, node: libcst.Set) -> None:
-        if libcst.matchers.matches(node.elements, E103_IN_ELEMENT_LIST_MATCHER):
+        if libcst.matchers.matches(
+            node, libcst.matchers.Set(elements=E103_IN_ELEMENT_LIST_MATCHER)
+        ):
             self._collect_e103(node)
 
     def _collect_e103(self, node: libcst.Tuple | libcst.List | libcst.Set) -> None:
