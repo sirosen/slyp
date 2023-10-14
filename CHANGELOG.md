@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.0.3
+
 - Add `--disable` for turning off specific codes
 - Various minor speed improvements, resulting in ~5% faster runs on large
   codebases
