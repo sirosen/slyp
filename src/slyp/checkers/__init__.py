@@ -60,3 +60,12 @@ def _exempt(lines: list[bytes], lineno: int, code: str) -> bool:
         return disabled_codes == b"all" or code.encode() in disabled_codes.split(b",")
 
     return False
+
+
+def _clear_errors():
+    # testsuite hook for resetting errors for clean reporting
+    from .abstract import _clear_visitor_errors as clear_cst_errors
+    from .concrete import _clear_visitor_errors as clear_ast_errors
+
+    clear_cst_errors()
+    clear_ast_errors()

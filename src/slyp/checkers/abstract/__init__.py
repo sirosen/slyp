@@ -22,3 +22,8 @@ def run_ast_checkers(filename: str, content: bytes) -> set[tuple[int, str]]:
         if error_filename == filename
         for visitor in _VISITORS
     }
+
+
+def _clear_visitor_errors() -> None:
+    for visitor in _VISITORS:
+        visitor.errors = set()
