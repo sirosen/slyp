@@ -16,7 +16,7 @@ CODE_MAP = {
     "W200": "two AST branches have identical contents",
 }
 
-_DISALBE_RE = re.compile(r"#\s*slyp:\s*disable=(.*)")
+_DISALBE_RE = re.compile(rb"#\s*slyp:\s*disable=(.*)")
 
 
 def check_file(
@@ -25,15 +25,16 @@ def check_file(
     if verbose:
         print(f"checking {filename}")
 
-    cst_errors = run_cst_checkers(filename)
-    ast_errors = run_ast_checkers(filename)
+    with open(filename, "rb") as fp:
+        bin_data = fp.read()
+
+    cst_errors = run_cst_checkers(filename, bin_data)
+    ast_errors = run_ast_checkers(filename, bin_data)
     errors = sorted(cst_errors | ast_errors)
 
     disabled_codes = disabled_codes or set()
 
-    with open(filename) as fp:
-        lines = fp.readlines()
-
+    lines = bin_data.splitlines()
     filtered_errors = sorted(
         (lineno, code)
         for lineno, code in errors
@@ -47,15 +48,19 @@ def check_file(
     return True
 
 
-def _exempt(lines: list[str], lineno: int, code: str) -> bool:
+def _exempt(lines: list[bytes], lineno: int, code: str) -> bool:
     # should be impossible most of the time, but a failed parse uses a position of
     # 0 which becomes -1 here
     if lineno == -1 or len(lines) < lineno:
         return False
 
     line = lines[lineno]
+    # start with a faster check before trying the regex
+    if b"slyp" not in line:
+        return False
+
     if match := _DISALBE_RE.search(line):
         disabled_codes = match.group(1)
-        return disabled_codes == "all" or code in disabled_codes.split(",")
+        return disabled_codes == b"all" or code.encode() in disabled_codes.split(b",")
 
     return False

@@ -4,15 +4,21 @@ import ast
 
 from .matching_branches import FindEquivalentBranchesVisitor
 
+_VISITORS = [FindEquivalentBranchesVisitor()]
 
-def run_ast_checkers(filename: str) -> set[tuple[int, str]]:
-    visitors = [FindEquivalentBranchesVisitor()]
-    with open(filename) as fp:
-        try:
-            tree = ast.parse(fp.read(), filename=filename)
-        except SyntaxError:
-            return {(0, "X001")}
 
-    for visitor in visitors:
+def run_ast_checkers(filename: str, content: bytes) -> set[tuple[int, str]]:
+    try:
+        tree = ast.parse(content, filename=filename)
+    except SyntaxError:
+        return {(0, "X001")}
+
+    for visitor in _VISITORS:
+        visitor.filename = filename
         visitor.visit(tree)
-    return {e for e in visitor.errors for visitor in visitors}
+    return {
+        (lineno, code)
+        for (lineno, error_filename, code) in visitor.errors
+        if error_filename == filename
+        for visitor in _VISITORS
+    }

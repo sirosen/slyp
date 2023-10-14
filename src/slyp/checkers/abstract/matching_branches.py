@@ -57,7 +57,8 @@ class FindEquivalentBranchesVisitor(ast.NodeVisitor):
     # others? what about bool ops like `foo() or foo()`?
     def __init__(self) -> None:
         super().__init__()
-        self.errors: set[tuple[int, str]] = set()
+        self.filename: str = "<unset>"
+        self.errors: set[tuple[int, str, str]] = set()
 
     def visit_Try(self, node: ast.Try) -> None:
         all_body_nodes: list[list[ast.stmt]] = [node.body]
@@ -69,13 +70,13 @@ class FindEquivalentBranchesVisitor(ast.NodeVisitor):
             all_body_nodes.append(node.finalbody)
 
         if product_compare_ast(all_body_nodes):
-            self.errors.add((node.lineno, "W200"))
+            self.errors.add((node.lineno, self.filename, "W200"))
         else:
             self.generic_visit(node)
 
     def visit_IfExp(self, node: ast.IfExp) -> None:
         if product_compare_ast([node.body, node.orelse]):
-            self.errors.add((node.lineno, "W200"))
+            self.errors.add((node.lineno, self.filename, "W200"))
         else:
             self.generic_visit(node)
 
@@ -91,7 +92,7 @@ class FindEquivalentBranchesVisitor(ast.NodeVisitor):
         terminal_else_branch = current  # rename for clarity below
 
         if product_compare_ast(collected_branches):
-            self.errors.add((node.lineno, "W200"))
+            self.errors.add((node.lineno, self.filename, "W200"))
         else:
             self.generic_visit(node.test)
             for subnode in node.body:
