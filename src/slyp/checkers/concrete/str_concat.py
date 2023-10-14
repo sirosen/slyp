@@ -1,11 +1,21 @@
+from __future__ import annotations
+
+import sys
+import typing as t
+
 import libcst
 import libcst.matchers
+
+if sys.version_info >= (3, 10):
+    from typing import TypeGuard
+else:
+    from typing_extensions import TypeGuard
 
 
 class StrConcatErrorCollector(libcst.CSTVisitor):
     METADATA_DEPENDENCIES = (libcst.metadata.PositionProvider,)
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.errors: set[tuple[int, str]] = set()
 
     def visit_ConcatenatedString(self, node: libcst.ConcatenatedString) -> None:
@@ -73,23 +83,28 @@ class StrConcatErrorCollector(libcst.CSTVisitor):
             if libcst.matchers.matches(
                 element,
                 libcst.matchers.Element(
-                    value=unparenthesized_multiline_concatenated_string_matcher()
+                    # mypy fails here, possibly the libcst types are incomplete (?)
+                    value=unparenthesized_multiline_concatenated_string_matcher()  # type: ignore[arg-type]  # noqa: E501
                 ),
             ):
                 lpos = self.get_metadata(
-                    libcst.metadata.PositionProvider, element.value.left
+                    libcst.metadata.PositionProvider,
+                    t.cast(libcst.ConcatenatedString, element.value).left,
                 ).start
                 self.errors.add((lpos.line, "E103"))
 
 
-def is_unparenthesized_multiline_concatenated_string(node: libcst.BaseElement) -> bool:
+def is_unparenthesized_multiline_concatenated_string(
+    node: libcst.CSTNode,
+) -> TypeGuard[libcst.ConcatenatedString]:
     return libcst.matchers.matches(
-        node, unparenthesized_multiline_concatenated_string_matcher()
+        node,
+        unparenthesized_multiline_concatenated_string_matcher(),
     )
 
 
 def unparenthesized_multiline_concatenated_string_matcher() -> (
-    libcst.matchers.BaseExpression
+    libcst.matchers.BaseMatcherNode
 ):
     return libcst.matchers.ConcatenatedString(
         whitespace_between=(

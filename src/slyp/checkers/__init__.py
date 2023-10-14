@@ -29,7 +29,7 @@ def check_file(
     ast_errors = run_ast_checkers(filename)
     errors = sorted(cst_errors | ast_errors)
 
-    disabled_codes = disabled_codes or {}
+    disabled_codes = disabled_codes or set()
 
     with open(filename) as fp:
         lines = fp.readlines()
@@ -57,3 +57,5 @@ def _exempt(lines: list[str], lineno: int, code: str) -> bool:
     if match := _DISALBE_RE.search(line):
         disabled_codes = match.group(1)
         return disabled_codes == "all" or code in disabled_codes.split(",")
+
+    return False

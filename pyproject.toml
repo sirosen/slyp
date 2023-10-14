@@ -22,7 +22,10 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
 ]
-dependencies = ["libcst>=1"]
+dependencies = [
+    "libcst>=1",
+    'typing_extensions>=4.0; python_version<"3.10"'
+]
 
 [project.urls]
 source = "https://github.com/sirosen/slyp"
@@ -34,6 +37,11 @@ slyp = "slyp:main"
 [tool.coverage.run]
 parallel = true
 source = ["slyp"]
+[tool.coverage.paths]
+source = [
+    "src/",
+    "*/site-packages/"
+]
 [tool.coverage.report]
 show_missing = true
 skip_covered = true

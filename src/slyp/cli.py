@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import argparse
 import glob
 import os
 import stat
 import subprocess
 import sys
+import typing as t
 
 from slyp.checkers import check_file
 
@@ -49,7 +52,7 @@ W200: two AST branches have identical contents
 """
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description=HELP, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -76,7 +79,7 @@ def main():
     print("ok")
 
 
-def all_py_filenames(files, use_git_ls):
+def all_py_filenames(files: t.Sequence[str], use_git_ls: bool) -> t.Iterable[str]:
     if files:
         yield from files
     elif use_git_ls:
