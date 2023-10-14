@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 import libcst
+
 from .str_concat import StrConcatErrorCollector
 
 

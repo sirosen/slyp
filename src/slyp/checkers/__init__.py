@@ -7,7 +7,7 @@ from .concrete import run_cst_checkers
 
 CODE_MAP = {
     # internal codes
-    "X001": "unparseable file",
+    "X001": "unparsable file",
     # external codes
     "E100": "unnecessary string concat",
     "E101": "unparenthesized multiline string concat in keyword arg",
