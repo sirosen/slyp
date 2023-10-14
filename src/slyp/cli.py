@@ -56,10 +56,7 @@ def main() -> None:
         description=HELP, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument(
-        "-q",
-        "--quiet",
-        action="store_true",
-        help="reduce output verbosity to errors-only",
+        "-v", "--verbose", action="store_true", help="increase output verbosity"
     )
     parser.add_argument(
         "--use-git-ls", action="store_true", help="find python files from git-ls-files"
@@ -71,11 +68,13 @@ def main() -> None:
 
     success = True
     for filename in all_py_filenames(args.files, args.use_git_ls):
-        success = check_file(filename, quiet=args.quiet) and success
+        success = check_file(filename, verbose=args.verbose) and success
 
     if not success:
         sys.exit(1)
-    print("ok")
+
+    if args.verbose:
+        print("ok")
 
 
 def all_py_filenames(files: t.Sequence[str], use_git_ls: bool) -> t.Iterable[str]:

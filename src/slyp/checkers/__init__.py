@@ -20,9 +20,9 @@ _DISALBE_RE = re.compile(r"#\s*slyp:\s*disable=(.*)")
 
 
 def check_file(
-    filename: str, *, quiet: bool, disabled_codes: set[str] | None = None
+    filename: str, *, verbose: bool, disabled_codes: set[str] | None = None
 ) -> bool:
-    if not quiet:
+    if verbose:
         print(f"checking {filename}")
 
     cst_errors = run_cst_checkers(filename)
