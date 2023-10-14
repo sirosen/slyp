@@ -1,0 +1,4 @@
+[flake8]  # black compatible rules
+exclude = .git,.tox,__pycache__,dist,.venv*,build,*.egg-info
+max-line-length = 88
+ignore = W503,W504,E203

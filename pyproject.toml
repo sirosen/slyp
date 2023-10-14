@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "slyp"
+version = "0.0.1"
+description = "Stephen Lints Your Python"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { "text" = "MIT" }
+keywords = []
+authors = [
+  { name = "Stephen Rosen", email = "sirosen@globus.org" },
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+dependencies = ["libcst>=1"]
+
+[project.urls]
+source = "https://github.com/sirosen/slyp"
+
+[project.scripts]
+slyp = "slyp:main"
+
+
+[tool.coverage.run]
+parallel = true
+source = ["slyp"]
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_lines = [
+    # the pragma to disable coverage
+    "pragma: no cover",
+    # don't complain if tests don't hit unimplemented methods/modes
+    "raise NotImplementedError",
+    # don't check on executable components of importable modules
+    "if __name__ == .__main__.:",
+    # mypy-only code segments
+    "if t.TYPE_CHECKING:",
+    # type-checking overloads
+    "@t.overload"
+]
+[tool.isort]
+profile = "black"
+[tool.mypy]
+strict = true
