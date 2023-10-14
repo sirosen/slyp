@@ -61,14 +61,26 @@ def main() -> None:
     parser.add_argument(
         "--use-git-ls", action="store_true", help="find python files from git-ls-files"
     )
+    parser.add_argument(
+        "--disable",
+        help="disable error and warning codes (comma delimited)",
+    )
     parser.add_argument("files", nargs="*", help="default: all python files")
     args = parser.parse_args()
     if args.use_git_ls and args.files:
         parser.error("--use-git-ls requires no filenames as arguments")
 
+    if args.disable:
+        disabled_codes = set(args.disable.split(","))
+    else:
+        disabled_codes = set()
+
     success = True
     for filename in all_py_filenames(args.files, args.use_git_ls):
-        success = check_file(filename, verbose=args.verbose) and success
+        success = (
+            check_file(filename, verbose=args.verbose, disabled_codes=disabled_codes)
+            and success
+        )
 
     if not success:
         sys.exit(1)

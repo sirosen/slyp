@@ -1,5 +1,8 @@
 # Unreleased
 
+- Add `--disable` for turning off specific codes
+- Various minor speed improvements, resulting in ~5% faster runs on large
+  codebases
 - Invert verbosity control by removing `-q/--quiet` and adding `-v/--verbose`.
   Verbose output is now opt-in, not opt-out.
 

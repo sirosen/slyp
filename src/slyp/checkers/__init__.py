@@ -19,9 +19,7 @@ CODE_MAP = {
 _DISALBE_RE = re.compile(rb"#\s*slyp:\s*disable=(.*)")
 
 
-def check_file(
-    filename: str, *, verbose: bool, disabled_codes: set[str] | None = None
-) -> bool:
+def check_file(filename: str, *, verbose: bool, disabled_codes: set[str]) -> bool:
     if verbose:
         print(f"checking {filename}")
 
@@ -31,8 +29,6 @@ def check_file(
     cst_errors = run_cst_checkers(filename, bin_data)
     ast_errors = run_ast_checkers(filename, bin_data)
     errors = sorted(cst_errors | ast_errors)
-
-    disabled_codes = disabled_codes or set()
 
     lines = bin_data.splitlines()
     filtered_errors = sorted(
