@@ -1,5 +1,13 @@
 # Unreleased
 
+- The matching AST checker now considers the triviality and proximity of
+  matching AST nodes. By default, only the check for non-trivial adjacent
+  branches is enabled.
+  - Add `W201`, `W202`, and `W203` to describe the disabled checks
+  - Triviality is defined as a heuristic which captures simple expressions and
+    statements (e.g. `return None` is a trivial statement)
+- Add support for `--enable` to turn on disabled codes
+
 # 0.0.3
 
 - Add `--disable` for turning off specific codes

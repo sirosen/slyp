@@ -10,6 +10,8 @@ import typing as t
 
 from slyp.checkers import check_file
 
+DEFAULT_DISABLED_CODES: set[str] = {"W201", "W202", "W203"}
+
 HELP = """
 slyp primarily checks for flavors of string concatenation which are allowed by
 the `black` formatter and other linting tools, but are either unnecessary or
@@ -48,6 +50,33 @@ W200: two AST branches have identical contents
     else:
         # some comment
         return y + 1
+
+W201: two AST branches have identical but trivial contents (disabled by default)
+    if x is True:
+        return
+    else:
+        return
+
+W202: two non-adjacent AST branches have identical contents (disabled by default)
+    if x is True:
+        return foo(bar())
+    elif y is True:
+        return 0
+    elif z is True:
+        return 1
+    else:
+        return foo(bar())
+
+W203: two non-adjacent AST branches have identical but trivial contents \
+(disabled by default)
+    if x is True:
+        return None
+    elif y is True:
+        return 0
+    elif z is True:
+        return 1
+    else:
+        return None
 """
 
 
@@ -63,17 +92,26 @@ def main() -> None:
     )
     parser.add_argument(
         "--disable",
-        help="disable error and warning codes (comma delimited)",
+        help="Disable error and warning codes (comma delimited)",
+        default="",
+    )
+    parser.add_argument(
+        "--enable",
+        help=(
+            "Enable error and warning codes which are otherwise disabled "
+            "(comma delimited, overrides --disable)"
+        ),
+        default="",
     )
     parser.add_argument("files", nargs="*", help="default: all python files")
     args = parser.parse_args()
     if args.use_git_ls and args.files:
         parser.error("--use-git-ls requires no filenames as arguments")
 
-    if args.disable:
-        disabled_codes = set(args.disable.split(","))
-    else:
-        disabled_codes = set()
+    disabled_codes = {x for x in args.disable.split(",") if x != ""}
+    disabled_codes = disabled_codes | DEFAULT_DISABLED_CODES
+    enabled_codes = {x for x in args.enable.split(",") if x != ""}
+    disabled_codes = disabled_codes - enabled_codes
 
     success = True
     for filename in all_py_filenames(args.files, args.use_git_ls):

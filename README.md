@@ -67,7 +67,15 @@ This is mutually exclusive with any filename arguments.
 
 `--disable CODES`: Pass a comma-delimited list of codes to turn off.
 
+`--enable CODES`: Pass a comma-delimited list of codes to turn on.
+
 ## Implemented Rules
+
+E is for "error" (you should probably change this)
+
+W is for "warning" (you might want to change this)
+
+Some warnings are disabled by default; enable them with `--enable`.
 
 ### E100
 
@@ -117,6 +125,47 @@ This is mutually exclusive with any filename arguments.
     else:
         # some comment
         return y + 1
+
+### W201
+
+_disabled by default_
+
+'two AST branches have identical but trivial contents'
+
+    if x is True:
+        return
+    else:
+        return
+
+### W202
+
+_disabled by default_
+
+'two non-adjacent AST branches have identical contents'
+
+    if x is True:
+        return foo(bar())
+    elif y is True:
+        return 0
+    elif z is True:
+        return 1
+    else:
+        return foo(bar())
+
+### W203
+
+_disabled by default_
+
+'two non-adjacent AST branches have identical but trivial contents'
+
+    if x is True:
+        return None
+    elif y is True:
+        return 0
+    elif z is True:
+        return 1
+    else:
+        return None
 
 ## License
 

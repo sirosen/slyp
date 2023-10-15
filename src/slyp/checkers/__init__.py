@@ -8,12 +8,16 @@ from .concrete import run_cst_checkers
 CODE_MAP = {
     # internal codes
     "X001": "unparsable file",
-    # external codes
+    # errors
     "E100": "unnecessary string concat",
     "E101": "unparenthesized multiline string concat in keyword arg",
     "E102": "unparenthesized multiline string concat in dict value",
     "E103": "unparenthesized multiline string concat in collection type",
+    # warnings
     "W200": "two AST branches have identical contents",
+    "W201": "two AST branches have identical trivial contents",
+    "W202": "two non-adjacent AST branches have identical contents",
+    "W203": "two non-adjacent AST branches have identical trivial contents",
 }
 
 _DISALBE_RE = re.compile(rb"#\s*slyp:\s*disable=(.*)")

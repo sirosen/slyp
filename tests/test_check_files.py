@@ -128,11 +128,9 @@ def test_check_captures_w200(tmpdir, capsys):
         """\
 def foo():
     if bar():
-        return baz()
-    elif qux():
-        return quux()
+        return baz(quux("snork"))
     else:
-        return baz()
+        return baz(quux("snork"))
 """
     )
     res = check_file("foo.py", verbose=False, disabled_codes=set())
@@ -144,22 +142,79 @@ def foo():
     )
 
 
-def test_can_disable_code_with_comment(tmpdir, capsys):
+def test_check_captures_w201(tmpdir, capsys):
     os.chdir(tmpdir)
     tmpdir.join("foo.py").write(
         """\
 def foo():
-    if bar():  # slyp: disable=W200
+    if bar():
         return baz()
-    elif qux():
-        return quux()
     else:
         return baz()
 """
     )
     res = check_file("foo.py", verbose=False, disabled_codes=set())
-    assert res is True
+    assert res is False
 
     assert (
-        "two AST branches have identical contents (W200)" not in capsys.readouterr().out
+        "foo.py:2: two AST branches have identical trivial contents (W201)"
+        in capsys.readouterr().out
     )
+
+
+def test_check_captures_w202(tmpdir, capsys):
+    os.chdir(tmpdir)
+    tmpdir.join("foo.py").write(
+        """\
+def foo():
+    if bar():
+        return baz("snork", flip="flop")
+    elif qux():
+        return quux()
+    else:
+        return baz("snork", flip="flop")
+"""
+    )
+    res = check_file("foo.py", verbose=False, disabled_codes=set())
+    assert res is False
+
+    assert (
+        "foo.py:2: two non-adjacent AST branches have identical contents (W202)"
+        in capsys.readouterr().out
+    )
+
+
+def test_check_captures_w203(tmpdir, capsys):
+    os.chdir(tmpdir)
+    tmpdir.join("foo.py").write(
+        """\
+def foo():
+    if bar():
+        return baz("snork")
+    elif qux():
+        return quux()
+    else:
+        return baz("snork")
+"""
+    )
+    res = check_file("foo.py", verbose=False, disabled_codes=set())
+    assert res is False
+
+    assert (
+        "foo.py:2: two non-adjacent AST branches have identical trivial contents (W203)"
+        in capsys.readouterr().out
+    )
+
+
+def test_can_disable_code_with_comment(tmpdir, capsys):
+    os.chdir(tmpdir)
+    tmpdir.join("foo.py").write(
+        """\
+def foo():
+    x = "a " "b"  # slyp: disable=E100
+"""
+    )
+    res = check_file("foo.py", verbose=False, disabled_codes=set())
+    assert res is True
+
+    assert "(E100)" not in capsys.readouterr().out
