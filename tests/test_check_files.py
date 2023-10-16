@@ -122,6 +122,20 @@ foo = (
     )
 
 
+def test_check_w103_ignores_solo_strings(tmpdir):
+    os.chdir(tmpdir)
+    tmpdir.join("foo.py").write(
+        """\
+foo = [
+    "alpha"
+    "beta"
+]
+"""
+    )
+    res = check_file("foo.py", verbose=False, disabled_codes=set(), enabled_codes=set())
+    assert res is True
+
+
 def test_check_captures_w200(tmpdir, capsys):
     os.chdir(tmpdir)
     tmpdir.join("foo.py").write(

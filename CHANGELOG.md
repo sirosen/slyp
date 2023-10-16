@@ -1,5 +1,8 @@
 # Unreleased
 
+- `W103` now ignores a multiline string join which is the only string inside
+  of a container type.
+
 # 0.1.0
 
 - `--disable` and `--enable` now support the special string "all" to refer to

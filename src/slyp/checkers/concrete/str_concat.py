@@ -46,21 +46,24 @@ W101_KWARG_MATCHER = libcst.matchers.Arg(
 
 # check for 'unparenthesized multiline string concat in container'
 #
-# this case is multiline str concat inside of a container type, which can be unexpected
-# or undesirable in a couple of cases
+# this case is multiline str concat inside of a container type, containing other
+# elements
 #
-# 1. "accidental tuple", where parens were wanted around a string, not a tuple
-#
-#    x = ("foo "
-#         "bar",)
-#
-# 2. "accidental multiline string", where a collection contains string literals, but is
-#    missing one comma
+# the main scenario is "accidental multiline string", where a collection contains
+# string literals, but is missing one comma
 #
 #   x = [
 #       "foo "
 #       "bar",
 #       "baz",
+#   ]
+#
+# however, a similar argument applies to any mixed iterable, e.g.
+#
+#   x = (
+#       "foo "
+#       "bar",
+#       baz(),
 #   ]
 W103_ELEMENT_MATCHER = libcst.matchers.Element(
     value=UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER
@@ -68,11 +71,18 @@ W103_ELEMENT_MATCHER = libcst.matchers.Element(
 
 # this allows us to do faster matching for W103 by checking the whole list with
 # a single matcher conditional
-W103_IN_ELEMENT_LIST_MATCHER = [
-    libcst.matchers.ZeroOrMore(),
-    W103_ELEMENT_MATCHER,
-    libcst.matchers.ZeroOrMore(),
-]
+W103_IN_ELEMENT_LIST_MATCHER = libcst.matchers.OneOf(
+    [
+        libcst.matchers.AtLeastN(n=1),
+        W103_ELEMENT_MATCHER,
+        libcst.matchers.ZeroOrMore(),
+    ],
+    [
+        libcst.matchers.ZeroOrMore(),
+        W103_ELEMENT_MATCHER,
+        libcst.matchers.AtLeastN(n=1),
+    ],
+)
 
 
 class StrConcatErrorCollector(libcst.CSTVisitor):
