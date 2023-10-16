@@ -16,6 +16,10 @@ class CompareResult:
     def __bool__(self) -> bool:
         return self.matches
 
+    @property
+    def adjacent(self):
+        return self.distance < 2
+
 
 def is_trivial(
     node: ast.AST | list[ast.AST] | list[ast.expr] | list[ast.stmt] | None,
@@ -131,6 +135,19 @@ def product_compare_ast(
     return CompareResult(False, None)
 
 
+def result_to_code(result: CompareResult) -> str:
+    if result.adjacent:
+        if result.is_trivial:
+            return "W201"
+        else:
+            return "W200"
+    else:
+        if result.is_trivial:
+            return "W203"
+        else:
+            return "W202"
+
+
 class FindEquivalentBranchesVisitor(ast.NodeVisitor):
     # open questions:
     #
@@ -145,15 +162,8 @@ class FindEquivalentBranchesVisitor(ast.NodeVisitor):
         self.filename: str = "<unset>"
         self.errors: set[tuple[int, str, str]] = set()
 
-    def _record(self, lineno: int, result: CompareResult) -> None:
-        if result.distance < 2:
-            self.errors.add(
-                (lineno, self.filename, "W201" if result.is_trivial else "W200")
-            )
-        else:
-            self.errors.add(
-                (lineno, self.filename, "W203" if result.is_trivial else "W202")
-            )
+    def _record(self, node: ast.AST, result: CompareResult) -> None:
+        self.errors.add((node.lineno, self.filename, result_to_code(result)))
 
     def visit_Try(self, node: ast.Try) -> None:
         all_body_nodes: list[list[ast.stmt]] = [node.body]
@@ -165,13 +175,13 @@ class FindEquivalentBranchesVisitor(ast.NodeVisitor):
             all_body_nodes.append(node.finalbody)
 
         if r := product_compare_ast(all_body_nodes):
-            self._record(node.lineno, r)
+            self.errors.add((node.lineno, self.filename, result_to_code(r)))
         else:
             self.generic_visit(node)
 
     def visit_IfExp(self, node: ast.IfExp) -> None:
         if r := product_compare_ast([node.body, node.orelse]):
-            self._record(node.lineno, r)
+            self._record(node, r)
         else:
             self.generic_visit(node)
 
@@ -187,7 +197,7 @@ class FindEquivalentBranchesVisitor(ast.NodeVisitor):
         terminal_else_branch = current  # rename for clarity below
 
         if r := product_compare_ast(collected_branches):
-            self._record(node.lineno, r)
+            self._record(node, r)
         else:
             self.generic_visit(node.test)
             for subnode in node.body:
