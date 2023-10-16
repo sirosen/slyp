@@ -59,17 +59,19 @@ def main() -> None:
     # parse inputs from comma delimited lists
     disabled_codes = {x for x in args.disable.split(",") if x != ""}
     enabled_codes = {x for x in args.enable.split(",") if x != ""}
-    # add default disables
-    disabled_codes = disabled_codes | DEFAULT_DISABLED_CODES
-    # remove explicitly enabled codes from disabled codes
-    disabled_codes = disabled_codes - enabled_codes
-    # remove enabled categories from disabled codes
-    disabled_codes -= {c for c in disabled_codes if c[0] in enabled_codes}
+    # add default disables if "all" is not in --enable
+    if "all" not in enabled_codes:
+        disabled_codes = disabled_codes | DEFAULT_DISABLED_CODES
 
     success = True
     for filename in all_py_filenames(args.files, args.use_git_ls):
         success = (
-            check_file(filename, verbose=args.verbose, disabled_codes=disabled_codes)
+            check_file(
+                filename,
+                verbose=args.verbose,
+                disabled_codes=disabled_codes,
+                enabled_codes=enabled_codes,
+            )
             and success
         )
 

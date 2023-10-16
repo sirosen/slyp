@@ -10,7 +10,9 @@ from .concrete import run_cst_checkers
 _DISALBE_RE = re.compile(rb"#\s*slyp:\s*disable=(.*)")
 
 
-def check_file(filename: str, *, verbose: bool, disabled_codes: set[str]) -> bool:
+def check_file(
+    filename: str, *, verbose: bool, disabled_codes: set[str], enabled_codes: set[str]
+) -> bool:
     if verbose:
         print(f"checking {filename}")
 
@@ -25,7 +27,8 @@ def check_file(filename: str, *, verbose: bool, disabled_codes: set[str]) -> boo
     filtered_errors = sorted(
         (lineno, code)
         for lineno, code in errors
-        if not _disabled(code, disabled_codes) and not _exempt(lines, lineno - 1, code)
+        if not _disabled(code, disabled_codes, enabled_codes)
+        and not _exempt(lines, lineno - 1, code)
     )
 
     if filtered_errors:
@@ -35,9 +38,25 @@ def check_file(filename: str, *, verbose: bool, disabled_codes: set[str]) -> boo
     return True
 
 
-def _disabled(code: str, disabled_codes: set[str]) -> bool:
+def _disabled(code: str, disabled_codes: set[str], enabled_codes: set[str]) -> bool:
     cdef = CODE_MAP[code]
-    return code in disabled_codes or cdef.category in disabled_codes
+
+    # enabled is higher precedence than disabled
+    # but "all" in enabled_codes is not checked so that
+    # '--enable all --disable FOO' works
+    if code in enabled_codes or cdef.category in enabled_codes:
+        return False
+
+    # if "all" is in disabled_codes, then everything is disabled unless
+    # explicitly enabled (checked above)
+    if (
+        "all" in disabled_codes
+        or code in disabled_codes
+        or cdef.category in disabled_codes
+    ):
+        return True
+
+    return False
 
 
 def _exempt(lines: list[bytes], lineno: int, code: str) -> bool:

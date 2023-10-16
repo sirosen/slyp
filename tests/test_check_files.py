@@ -49,7 +49,7 @@ z = {
 }
 """
     )
-    res = check_file("foo.py", verbose=False, disabled_codes=set())
+    res = check_file("foo.py", verbose=False, disabled_codes=set(), enabled_codes=set())
     assert res is True
 
 
@@ -60,7 +60,7 @@ def test_check_captures_e100(tmpdir, capsys):
 x = "foo" "bar"
 """
     )
-    res = check_file("foo.py", verbose=False, disabled_codes=set())
+    res = check_file("foo.py", verbose=False, disabled_codes=set(), enabled_codes=set())
     assert res is False
 
     assert "foo.py:1: unnecessary string concat (E100)" in capsys.readouterr().out
@@ -74,7 +74,7 @@ foo(x="foo"
 "bar")
 """
     )
-    res = check_file("foo.py", verbose=False, disabled_codes=set())
+    res = check_file("foo.py", verbose=False, disabled_codes=set(), enabled_codes=set())
     assert res is False
 
     assert (
@@ -93,7 +93,7 @@ foo = {
 }
 """
     )
-    res = check_file("foo.py", verbose=False, disabled_codes=set())
+    res = check_file("foo.py", verbose=False, disabled_codes=set(), enabled_codes=set())
     assert res is False
 
     assert (
@@ -113,7 +113,7 @@ foo = (
 )
 """
     )
-    res = check_file("foo.py", verbose=False, disabled_codes=set())
+    res = check_file("foo.py", verbose=False, disabled_codes=set(), enabled_codes=set())
     assert res is False
 
     assert (
@@ -133,7 +133,7 @@ def foo():
         return baz(quux("snork"))
 """
     )
-    res = check_file("foo.py", verbose=False, disabled_codes=set())
+    res = check_file("foo.py", verbose=False, disabled_codes=set(), enabled_codes=set())
     assert res is False
 
     assert (
@@ -153,7 +153,7 @@ def foo():
         return baz()
 """
     )
-    res = check_file("foo.py", verbose=False, disabled_codes=set())
+    res = check_file("foo.py", verbose=False, disabled_codes=set(), enabled_codes=set())
     assert res is False
 
     assert (
@@ -175,7 +175,7 @@ def foo():
         return baz("snork", flip="flop")
 """
     )
-    res = check_file("foo.py", verbose=False, disabled_codes=set())
+    res = check_file("foo.py", verbose=False, disabled_codes=set(), enabled_codes=set())
     assert res is False
 
     assert (
@@ -197,7 +197,7 @@ def foo():
         return baz("snork")
 """
     )
-    res = check_file("foo.py", verbose=False, disabled_codes=set())
+    res = check_file("foo.py", verbose=False, disabled_codes=set(), enabled_codes=set())
     assert res is False
 
     assert (
@@ -214,7 +214,7 @@ def foo():
     x = "a " "b"  # slyp: disable=E100
 """
     )
-    res = check_file("foo.py", verbose=False, disabled_codes=set())
+    res = check_file("foo.py", verbose=False, disabled_codes=set(), enabled_codes=set())
     assert res is True
 
     assert "(E100)" not in capsys.readouterr().out
@@ -233,7 +233,9 @@ def foo():
         return baz("snork")
 """
     )
-    res = check_file("foo.py", verbose=False, disabled_codes=set("W"))
+    res = check_file(
+        "foo.py", verbose=False, disabled_codes=set("W"), enabled_codes=set()
+    )
     assert res is True
 
     assert "(W203)" not in capsys.readouterr().out
@@ -247,7 +249,7 @@ if foo is None:
     return foo
 """
     )
-    res = check_file("foo.py", verbose=False, disabled_codes=set())
+    res = check_file("foo.py", verbose=False, disabled_codes=set(), enabled_codes=set())
     assert res is False
 
     assert (
