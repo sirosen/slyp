@@ -10,7 +10,7 @@ def _auto_clear_errors():
     _clear_errors()
 
 
-def test_check_passes_on_example_file(tmpdir, capsys):
+def test_check_passes_on_example_file(tmpdir):
     os.chdir(tmpdir)
     tmpdir.join("foo.py").write(
         """\
