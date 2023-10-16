@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.1.0
+
 - `--disable` and `--enable` now support the special string "all" to refer to
   all codes. Explicit enables and disables are given higher precedence than "all".
 - Add `E110` for catching the return of a known-`None` variable immediately
