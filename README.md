@@ -83,57 +83,69 @@ Some warnings are disabled by default; enable them with `--enable`.
 
 'unnecessary string concat'
 
-    x = "foo " "bar"
+```python
+x = "foo " "bar"
+```
 
 ### W101
 
 'unparenthesized multiline string concat in keyword arg'
 
-    foo(
-        bar="alpha "
-        "beta"
-    )
+```python
+foo(
+    bar="alpha "
+    "beta"
+)
+```
 
 ### W102
 
 'unparenthesized multiline string concat in dict value'
 
-    {
-        "foo": "alpha "
-        "beta"
-    }
+```python
+{
+    "foo": "alpha "
+    "beta"
+}
+```
 
 ### W103
 
 'unparenthesized multiline string concat in collection type'
 
-    x = (  # a tuple
-        "alpha "
-        "beta",
-        "gamma"
-    )
-    x = {  # or a set
-        "alpha "
-        "beta",
-        "gamma"
-    }
+```python
+x = (  # a tuple
+    "alpha "
+    "beta",
+    "gamma"
+)
+x = {  # or a set
+    "alpha "
+    "beta",
+    "gamma"
+}
+```
 
 ### E110
 
-'returning a variable chedked as None, rather than returning None'
+'returning a variable checked as None, rather than returning None'
 
-    if x is None:
-        return x  # should be `return None`
+```python
+if x is None:
+    return x  # should be `return None`
+```
 
 ### W200
 
 'two AST branches have identical contents'
 
-    if x is True:
-        return y + 1
-    else:
-        # some comment
-        return y + 1
+```python
+if x is True:
+    return y + 1
+else:
+    # some comment
+    return y + 1
+```
 
 ### W201
 
@@ -141,10 +153,12 @@ _disabled by default_
 
 'two AST branches have identical trivial contents'
 
-    if x is True:
-        return
-    else:
-        return
+```python
+if x is True:
+    return
+else:
+    return
+```
 
 ### W202
 
@@ -152,14 +166,16 @@ _disabled by default_
 
 'two non-adjacent AST branches have identical contents'
 
-    if x is True:
-        return foo(bar())
-    elif y is True:
-        return 0
-    elif z is True:
-        return 1
-    else:
-        return foo(bar())
+```python
+if x is True:
+    return foo(bar())
+elif y is True:
+    return 0
+elif z is True:
+    return 1
+else:
+    return foo(bar())
+```
 
 ### W203
 
@@ -167,14 +183,16 @@ _disabled by default_
 
 'two non-adjacent AST branches have identical trivial contents'
 
-    if x is True:
-        return None
-    elif y is True:
-        return 0
-    elif z is True:
-        return 1
-    else:
-        return None
+```python
+if x is True:
+    return None
+elif y is True:
+    return 0
+elif z is True:
+    return 1
+else:
+    return None
+```
 
 <!-- generate-reference-insert-end -->
 

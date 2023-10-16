@@ -10,7 +10,7 @@ def _auto_clear_errors():
     _clear_errors()
 
 
-def test_check_passes_on_example_file(tmpdir, capsys):
+def test_check_passes_on_example_file(tmpdir):
     os.chdir(tmpdir)
     tmpdir.join("foo.py").write(
         """\
@@ -253,6 +253,6 @@ if foo is None:
     assert res is False
 
     assert (
-        "foo.py:1: returning a variable chedked as None, "
+        "foo.py:1: returning a variable checked as None, "
         "rather than returning None (E110)"
     ) in capsys.readouterr().out

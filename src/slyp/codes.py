@@ -74,7 +74,7 @@ ALL_CODES: list[CodeDef] = [
     # returning known values
     CodeDef(
         "E110",
-        "returning a variable chedked as None, rather than returning None",
+        "returning a variable checked as None, rather than returning None",
         """
         if x is None:
             return x  # should be `return None`
@@ -159,7 +159,9 @@ Some warnings are disabled by default; enable them with `--enable`.
             yield ""
         yield f"'{code.message}'"
         yield ""
-        yield textwrap.indent(code.example, "    ")
+        yield "```python"
+        yield code.example
+        yield "```"
 
 
 def generate_reference() -> t.Iterator[str]:
