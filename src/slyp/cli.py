@@ -56,10 +56,15 @@ def main() -> None:
     if args.use_git_ls and args.files:
         parser.error("--use-git-ls requires no filenames as arguments")
 
+    # parse inputs from comma delimited lists
     disabled_codes = {x for x in args.disable.split(",") if x != ""}
-    disabled_codes = disabled_codes | DEFAULT_DISABLED_CODES
     enabled_codes = {x for x in args.enable.split(",") if x != ""}
+    # add default disables
+    disabled_codes = disabled_codes | DEFAULT_DISABLED_CODES
+    # remove explicitly enabled codes from disabled codes
     disabled_codes = disabled_codes - enabled_codes
+    # remove enabled categories from disabled codes
+    disabled_codes -= {c for c in disabled_codes if c[0] in enabled_codes}
 
     success = True
     for filename in all_py_filenames(args.files, args.use_git_ls):

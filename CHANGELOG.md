@@ -2,9 +2,8 @@
 
 - Add `E110` for catching the return of a known-`None` variable immediately
   after testing it (prefer to return `None`, not the variable name)
-- `--disable` supports categories, as in `--disable W` to disable all warnings.
-  `--enable` can be used to re-enable disabled categories, but does not
-  implicitly impact *default* disabled rules when a category is used.
+- `--disable` and `--disable` now support categories, as in `--disable W`
+  to disable all warnings.
 - The `E101`, `E102`, and `E103` codes have each been downgraded to warnings
   (`W` category) but are still enabled by default
 - The matching AST checker now considers the triviality and proximity of
