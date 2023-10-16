@@ -2,8 +2,8 @@
 
 Stephen Lints Your Python
 
-[![PyPI - Version](https://img.shields.io/pypi/v/click-type-test.svg)](https://pypi.org/project/click-type-test)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/click-type-test.svg)](https://pypi.org/project/click-type-test)
+[![PyPI - Version](https://img.shields.io/pypi/v/slyp.svg)](https://pypi.org/project/slyp)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/slyp.svg)](https://pypi.org/project/slyp)
 
 -----
 
