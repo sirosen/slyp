@@ -32,6 +32,12 @@ class CodeDef:
 ALL_CODES: list[CodeDef] = [
     # internal codes
     CodeDef("X001", "unparsable file", "foo(", hidden=True),
+    CodeDef(
+        "X002",
+        "reached recursion limit during CST checks",
+        "# see chardet",
+        hidden=True,
+    ),
     # errors & warnings, grouped by topic numerically
     # string concat
     CodeDef("E100", "unnecessary string concat", 'x = "foo " "bar"'),

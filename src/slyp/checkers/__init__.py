@@ -19,7 +19,11 @@ def check_file(
     with open(filename, "rb") as fp:
         bin_data = fp.read()
 
-    cst_errors = run_cst_checkers(filename, bin_data)
+    try:
+        cst_errors = run_cst_checkers(filename, bin_data)
+    except RecursionError:
+        cst_errors = {(0, "X002")}
+
     ast_errors = run_ast_checkers(filename, bin_data)
     errors = sorted(cst_errors | ast_errors)
 
