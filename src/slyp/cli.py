@@ -6,78 +6,26 @@ import os
 import stat
 import subprocess
 import sys
+import textwrap
 import typing as t
 
 from slyp.checkers import check_file
+from slyp.codes import CODE_MAP
 
 DEFAULT_DISABLED_CODES: set[str] = {"W201", "W202", "W203"}
 
 HELP = """
-slyp primarily checks for flavors of string concatenation which are allowed by
-the `black` formatter and other linting tools, but are either unnecessary or
-potentially confusing.
-
-E100: unnecessary string concat
-    x = "foo " "bar"
-
-E101: unparenthesized multiline string concat in keyword arg
-    foo(
-        bar="alpha "
-        "beta"
-    )
-
-E102: unparenthesized multiline string concat in dict value
-    {
-        "foo": "alpha "
-        "beta"
-    }
-
-E103: unparenthesized multiline string concat in collection type
-    x = (  # a tuple
-        "alpha "
-        "beta",
-        "gamma"
-    )
-    x = {  # or a set
-        "alpha "
-        "beta",
-        "gamma"
-    }
-
-W200: two AST branches have identical contents
-    if x is True:
-        return y + 1
-    else:
-        # some comment
-        return y + 1
-
-W201: two AST branches have identical but trivial contents (disabled by default)
-    if x is True:
-        return
-    else:
-        return
-
-W202: two non-adjacent AST branches have identical contents (disabled by default)
-    if x is True:
-        return foo(bar())
-    elif y is True:
-        return 0
-    elif z is True:
-        return 1
-    else:
-        return foo(bar())
-
-W203: two non-adjacent AST branches have identical but trivial contents \
-(disabled by default)
-    if x is True:
-        return None
-    elif y is True:
-        return 0
-    elif z is True:
-        return 1
-    else:
-        return None
+slyp is a linter which checks for stylistic issues in Python code which may be
+correctness problems or opportunities for improvement
 """
+
+for code in CODE_MAP.values():
+    if code.hidden:
+        continue
+    HELP += f"""
+
+{code.code}: {code.message}{"(disabled by default)" if code.default_disabled else ""}
+{textwrap.indent(code.example, "    ")}"""
 
 
 def main() -> None:

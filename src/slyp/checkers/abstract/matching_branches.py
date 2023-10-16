@@ -17,7 +17,7 @@ class CompareResult:
         return self.matches
 
     @property
-    def adjacent(self):
+    def adjacent(self) -> bool:
         return self.distance < 2
 
 

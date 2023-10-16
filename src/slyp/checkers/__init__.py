@@ -2,23 +2,10 @@ from __future__ import annotations
 
 import re
 
+from slyp.codes import CODE_MAP
+
 from .abstract import run_ast_checkers
 from .concrete import run_cst_checkers
-
-CODE_MAP = {
-    # internal codes
-    "X001": "unparsable file",
-    # errors
-    "E100": "unnecessary string concat",
-    "E101": "unparenthesized multiline string concat in keyword arg",
-    "E102": "unparenthesized multiline string concat in dict value",
-    "E103": "unparenthesized multiline string concat in collection type",
-    # warnings
-    "W200": "two AST branches have identical contents",
-    "W201": "two AST branches have identical trivial contents",
-    "W202": "two non-adjacent AST branches have identical contents",
-    "W203": "two non-adjacent AST branches have identical trivial contents",
-}
 
 _DISALBE_RE = re.compile(rb"#\s*slyp:\s*disable=(.*)")
 
@@ -43,7 +30,7 @@ def check_file(filename: str, *, verbose: bool, disabled_codes: set[str]) -> boo
 
     if filtered_errors:
         for lineno, code in filtered_errors:
-            print(f"{filename}:{lineno}: {CODE_MAP[code]} ({code})")
+            print(f"{filename}:{lineno}: {CODE_MAP[code]}")
         return False
     return True
 

@@ -1,5 +1,7 @@
 # Unreleased
 
+- The `E101`, `E102`, and `E103` codes have each been downgraded to warnings
+  (`W` category) but are still enabled by default
 - The matching AST checker now considers the triviality and proximity of
   matching AST nodes. By default, only the check for non-trivial adjacent
   branches is enabled.

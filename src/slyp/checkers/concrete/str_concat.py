@@ -39,7 +39,7 @@ SIMPLE_WHITESPACE_NO_NEWLINE_MATCHER = libcst.matchers.SimpleWhitespace(
 # argparse and click, where the help string is often slightly too long
 # for a single line, and easy to "break in two" without adding parens to
 # force the whole block to indent
-E101_KWARG_MATCHER = libcst.matchers.Arg(
+W101_KWARG_MATCHER = libcst.matchers.Arg(
     keyword=libcst.matchers.Name(),
     value=UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER,
 )
@@ -62,15 +62,15 @@ E101_KWARG_MATCHER = libcst.matchers.Arg(
 #       "bar",
 #       "baz",
 #   ]
-E103_ELEMENT_MATCHER = libcst.matchers.Element(
+W103_ELEMENT_MATCHER = libcst.matchers.Element(
     value=UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER
 )
 
-# this allows us to do faster matching for E103 by checking the whole list with
+# this allows us to do faster matching for W103 by checking the whole list with
 # a single matcher conditional
-E103_IN_ELEMENT_LIST_MATCHER = [
+W103_IN_ELEMENT_LIST_MATCHER = [
     libcst.matchers.ZeroOrMore(),
-    E103_ELEMENT_MATCHER,
+    W103_ELEMENT_MATCHER,
     libcst.matchers.ZeroOrMore(),
 ]
 
@@ -97,12 +97,12 @@ class StrConcatErrorCollector(libcst.CSTVisitor):
             self.errors.add((lpos.line, self.filename, "E100"))
 
     def visit_Arg(self, node: libcst.Arg) -> None:
-        if libcst.matchers.matches(node, E101_KWARG_MATCHER):
+        if libcst.matchers.matches(node, W101_KWARG_MATCHER):
             lpos = self.get_metadata(
                 libcst.metadata.PositionProvider,
                 node.value.left,  # type: ignore[attr-defined]
             ).start
-            self.errors.add((lpos.line, self.filename, "E101"))
+            self.errors.add((lpos.line, self.filename, "W101"))
 
     def visit_DictElement(self, node: libcst.DictElement) -> None:
         if libcst.matchers.matches(
@@ -113,40 +113,40 @@ class StrConcatErrorCollector(libcst.CSTVisitor):
                 libcst.metadata.PositionProvider,
                 node.value.left,  # type: ignore[attr-defined]
             ).start
-            self.errors.add((lpos.line, self.filename, "E102"))
+            self.errors.add((lpos.line, self.filename, "W102"))
 
     def visit_Tuple(self, node: libcst.Tuple) -> None:
         if libcst.matchers.matches(
             node,
             libcst.matchers.Tuple(
-                elements=E103_IN_ELEMENT_LIST_MATCHER  # type: ignore[arg-type]
+                elements=W103_IN_ELEMENT_LIST_MATCHER  # type: ignore[arg-type]
             ),
         ):
-            self._collect_e103(node)
+            self._collect_w103(node)
 
     def visit_List(self, node: libcst.List) -> None:
         if libcst.matchers.matches(
             node,
             libcst.matchers.List(
-                elements=E103_IN_ELEMENT_LIST_MATCHER  # type: ignore[arg-type]
+                elements=W103_IN_ELEMENT_LIST_MATCHER  # type: ignore[arg-type]
             ),
         ):
-            self._collect_e103(node)
+            self._collect_w103(node)
 
     def visit_Set(self, node: libcst.Set) -> None:
         if libcst.matchers.matches(
             node,
             libcst.matchers.Set(
-                elements=E103_IN_ELEMENT_LIST_MATCHER  # type: ignore[arg-type]
+                elements=W103_IN_ELEMENT_LIST_MATCHER  # type: ignore[arg-type]
             ),
         ):
-            self._collect_e103(node)
+            self._collect_w103(node)
 
-    def _collect_e103(self, node: libcst.Tuple | libcst.List | libcst.Set) -> None:
+    def _collect_w103(self, node: libcst.Tuple | libcst.List | libcst.Set) -> None:
         for element in node.elements:
-            if libcst.matchers.matches(element, E103_ELEMENT_MATCHER):
+            if libcst.matchers.matches(element, W103_ELEMENT_MATCHER):
                 lpos = self.get_metadata(
                     libcst.metadata.PositionProvider,
                     element.value.left,  # type: ignore[attr-defined]
                 ).start
-                self.errors.add((lpos.line, self.filename, "E103"))
+                self.errors.add((lpos.line, self.filename, "W103"))

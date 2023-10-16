@@ -71,6 +71,8 @@ This is mutually exclusive with any filename arguments.
 
 ## Implemented Rules
 
+<!-- generate-reference-insert-start -->
+
 E is for "error" (you should probably change this)
 
 W is for "warning" (you might want to change this)
@@ -83,7 +85,7 @@ Some warnings are disabled by default; enable them with `--enable`.
 
     x = "foo " "bar"
 
-### E101
+### W101
 
 'unparenthesized multiline string concat in keyword arg'
 
@@ -92,7 +94,7 @@ Some warnings are disabled by default; enable them with `--enable`.
         "beta"
     )
 
-### E102
+### W102
 
 'unparenthesized multiline string concat in dict value'
 
@@ -101,20 +103,20 @@ Some warnings are disabled by default; enable them with `--enable`.
         "beta"
     }
 
-### E103
+### W103
 
 'unparenthesized multiline string concat in collection type'
 
-    x = (  # a tuple, set or list
+    x = (  # a tuple
         "alpha "
         "beta",
         "gamma"
     )
-    x = {  # e.g. a set
+    x = {  # or a set
         "alpha "
         "beta",
+        "gamma"
     }
-
 
 ### W200
 
@@ -130,7 +132,7 @@ Some warnings are disabled by default; enable them with `--enable`.
 
 _disabled by default_
 
-'two AST branches have identical but trivial contents'
+'two AST branches have identical trivial contents'
 
     if x is True:
         return
@@ -156,7 +158,7 @@ _disabled by default_
 
 _disabled by default_
 
-'two non-adjacent AST branches have identical but trivial contents'
+'two non-adjacent AST branches have identical trivial contents'
 
     if x is True:
         return None
@@ -166,6 +168,8 @@ _disabled by default_
         return 1
     else:
         return None
+
+<!-- generate-reference-insert-end -->
 
 ## License
 
