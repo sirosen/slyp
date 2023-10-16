@@ -253,6 +253,6 @@ if foo is None:
     assert res is False
 
     assert (
-        "foo.py:1: returning a variable chedked as None, "
+        "foo.py:1: returning a variable checked as None, "
         "rather than returning None (E110)"
     ) in capsys.readouterr().out
