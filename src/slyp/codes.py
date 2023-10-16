@@ -159,7 +159,9 @@ Some warnings are disabled by default; enable them with `--enable`.
             yield ""
         yield f"'{code.message}'"
         yield ""
-        yield textwrap.indent(code.example, "    ")
+        yield "```python"
+        yield code.example
+        yield "```"
 
 
 def generate_reference() -> t.Iterator[str]:
