@@ -18,9 +18,9 @@ def run_cst_checkers(filename: str, content: bytes) -> set[tuple[int, str]]:
         wrapper.visit(visitor)
     return {
         (lineno, code)
+        for visitor in _VISITORS
         for (lineno, error_filename, code) in visitor.errors
         if error_filename == filename
-        for visitor in _VISITORS
     }
 
 

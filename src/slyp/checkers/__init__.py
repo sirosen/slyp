@@ -25,7 +25,7 @@ def check_file(filename: str, *, verbose: bool, disabled_codes: set[str]) -> boo
     filtered_errors = sorted(
         (lineno, code)
         for lineno, code in errors
-        if code not in disabled_codes and not (_exempt(lines, lineno - 1, code))
+        if not _disabled(code, disabled_codes) and not _exempt(lines, lineno - 1, code)
     )
 
     if filtered_errors:
@@ -33,6 +33,11 @@ def check_file(filename: str, *, verbose: bool, disabled_codes: set[str]) -> boo
             print(f"{filename}:{lineno}: {CODE_MAP[code]}")
         return False
     return True
+
+
+def _disabled(code: str, disabled_codes: set[str]) -> bool:
+    cdef = CODE_MAP[code]
+    return code in disabled_codes or cdef.category in disabled_codes
 
 
 def _exempt(lines: list[bytes], lineno: int, code: str) -> bool:

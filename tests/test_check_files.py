@@ -66,7 +66,7 @@ x = "foo" "bar"
     assert "foo.py:1: unnecessary string concat (E100)" in capsys.readouterr().out
 
 
-def test_check_captures_e101(tmpdir, capsys):
+def test_check_captures_w101(tmpdir, capsys):
     os.chdir(tmpdir)
     tmpdir.join("foo.py").write(
         """\
@@ -78,12 +78,12 @@ foo(x="foo"
     assert res is False
 
     assert (
-        "foo.py:1: unparenthesized multiline string concat in keyword arg (E101)"
+        "foo.py:1: unparenthesized multiline string concat in keyword arg (W101)"
         in capsys.readouterr().out
     )
 
 
-def test_check_captures_e102(tmpdir, capsys):
+def test_check_captures_w102(tmpdir, capsys):
     os.chdir(tmpdir)
     tmpdir.join("foo.py").write(
         """\
@@ -97,12 +97,12 @@ foo = {
     assert res is False
 
     assert (
-        "foo.py:2: unparenthesized multiline string concat in dict value (E102)"
+        "foo.py:2: unparenthesized multiline string concat in dict value (W102)"
         in capsys.readouterr().out
     )
 
 
-def test_check_captures_e103(tmpdir, capsys):
+def test_check_captures_w103(tmpdir, capsys):
     os.chdir(tmpdir)
     tmpdir.join("foo.py").write(
         """\
@@ -117,7 +117,7 @@ foo = (
     assert res is False
 
     assert (
-        "foo.py:3: unparenthesized multiline string concat in collection type (E103)"
+        "foo.py:3: unparenthesized multiline string concat in collection type (W103)"
         in capsys.readouterr().out
     )
 
@@ -218,3 +218,39 @@ def foo():
     assert res is True
 
     assert "(E100)" not in capsys.readouterr().out
+
+
+def test_can_disable_code_via_category_disable(tmpdir, capsys):
+    os.chdir(tmpdir)
+    tmpdir.join("foo.py").write(
+        """\
+def foo():
+    if bar():
+        return baz("snork")
+    elif qux():
+        return quux()
+    else:
+        return baz("snork")
+"""
+    )
+    res = check_file("foo.py", verbose=False, disabled_codes=set("W"))
+    assert res is True
+
+    assert "(W203)" not in capsys.readouterr().out
+
+
+def test_check_captures_e110(tmpdir, capsys):
+    os.chdir(tmpdir)
+    tmpdir.join("foo.py").write(
+        """\
+if foo is None:
+    return foo
+"""
+    )
+    res = check_file("foo.py", verbose=False, disabled_codes=set())
+    assert res is False
+
+    assert (
+        "foo.py:1: returning a variable chedked as None, "
+        "rather than returning None (E110)"
+    ) in capsys.readouterr().out

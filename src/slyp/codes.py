@@ -39,89 +39,98 @@ ALL_CODES: list[CodeDef] = [
         "W101",
         "unparenthesized multiline string concat in keyword arg",
         """
-            foo(
-                bar="alpha "
-                "beta"
-            )
-            """,
+        foo(
+            bar="alpha "
+            "beta"
+        )
+        """,
     ),
     CodeDef(
         "W102",
         "unparenthesized multiline string concat in dict value",
         """
-            {
-                "foo": "alpha "
-                "beta"
-            }
-            """,
+        {
+            "foo": "alpha "
+            "beta"
+        }
+        """,
     ),
     CodeDef(
         "W103",
         "unparenthesized multiline string concat in collection type",
         """
-            x = (  # a tuple
-                "alpha "
-                "beta",
-                "gamma"
-            )
-            x = {  # or a set
-                "alpha "
-                "beta",
-                "gamma"
-            }
-            """,
+        x = (  # a tuple
+            "alpha "
+            "beta",
+            "gamma"
+        )
+        x = {  # or a set
+            "alpha "
+            "beta",
+            "gamma"
+        }
+        """,
+    ),
+    # returning known values
+    CodeDef(
+        "E110",
+        "returning a variable chedked as None, rather than returning None",
+        """
+        if x is None:
+            return x  # should be `return None`
+        """,
     ),
     # ast matching
     CodeDef(
         "W200",
         "two AST branches have identical contents",
         """
-            if x is True:
-                return y + 1
-            else:
-                # some comment
-                return y + 1
-            """,
+        if x is True:
+            return y + 1
+        else:
+            # some comment
+            return y + 1
+        """,
     ),
     CodeDef(
         "W201",
         "two AST branches have identical trivial contents",
         """
-            if x is True:
-                return
-            else:
-                return
-            """,
+        if x is True:
+            return
+        else:
+            return
+        """,
         default_disabled=True,
     ),
     CodeDef(
         "W202",
         "two non-adjacent AST branches have identical contents",
         """
-            if x is True:
-                return foo(bar())
-            elif y is True:
-                return 0
-            elif z is True:
-                return 1
-            else:
-                return foo(bar())
-            """,
+        if x is True:
+            return foo(bar())
+        elif y is True:
+            return 0
+        elif z is True:
+            return 1
+        else:
+            return foo(bar())
+        """,
         default_disabled=True,
     ),
     CodeDef(
         "W203",
         "two non-adjacent AST branches have identical trivial contents",
         """
-            if x is True:
-                return None
-            elif y is True:
-                return 0
-            elif z is True:
-                return 1
-            else:
-                return None
-            """,
+        if x is True:
+            return None
+        elif y is True:
+            return 0
+        elif z is True:
+            return 1
+        else:
+            return None
+        """,
         default_disabled=True,
     ),
 ]

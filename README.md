@@ -118,6 +118,13 @@ Some warnings are disabled by default; enable them with `--enable`.
         "gamma"
     }
 
+### E110
+
+'returning a variable chedked as None, rather than returning None'
+
+    if x is None:
+        return x  # should be `return None`
+
 ### W200
 
 'two AST branches have identical contents'

@@ -4,6 +4,8 @@ import ast
 import itertools
 import typing as t
 
+from ._base import ErrorRecordingVisitor
+
 
 class CompareResult:
     __slots__ = ("matches", "is_trivial", "distance")
@@ -148,7 +150,7 @@ def result_to_code(result: CompareResult) -> str:
             return "W202"
 
 
-class FindEquivalentBranchesVisitor(ast.NodeVisitor):
+class FindEquivalentBranchesVisitor(ErrorRecordingVisitor):
     # open questions:
     #
     # add support for for-else?
@@ -157,11 +159,6 @@ class FindEquivalentBranchesVisitor(ast.NodeVisitor):
     #   async while-else?
     #
     # others? what about bool ops like `foo() or foo()`?
-    def __init__(self) -> None:
-        super().__init__()
-        self.filename: str = "<unset>"
-        self.errors: set[tuple[int, str, str]] = set()
-
     def _record(self, node: ast.AST, result: CompareResult) -> None:
         self.errors.add((node.lineno, self.filename, result_to_code(result)))
 
