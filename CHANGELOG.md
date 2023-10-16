@@ -1,5 +1,9 @@
 # Unreleased
 
+# 0.1.1
+
+- If CST traversal hits recursion depth, this is now reported as an internal
+  error without aborting the entire run of `slyp`
 - `W103` now ignores a multiline string join which is the only string inside
   of a container type.
 
