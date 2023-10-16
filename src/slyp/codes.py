@@ -74,7 +74,7 @@ ALL_CODES: list[CodeDef] = [
     # returning known values
     CodeDef(
         "E110",
-        "returning a variable chedked as None, rather than returning None",
+        "returning a variable checked as None, rather than returning None",
         """
         if x is None:
             return x  # should be `return None`
