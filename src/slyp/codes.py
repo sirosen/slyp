@@ -77,6 +77,17 @@ ALL_CODES: list[CodeDef] = [
         }
         """,
     ),
+    CodeDef(
+        "W120",
+        "unparenthesized multiline union in parameter annotation",
+        """
+        def foo(
+            x: int |
+            str
+        ):
+            return x
+        """,
+    ),
     # returning known values
     CodeDef(
         "E110",

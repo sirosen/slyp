@@ -1,5 +1,7 @@
 # Unreleased
 
+- Add `W120` for catching unparenthesized multiline annotations on parameters
+
 # 0.1.1
 
 - If CST traversal hits recursion depth, this is now reported as an internal
