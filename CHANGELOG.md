@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.1.2
+
 - Add `W120` for catching unparenthesized multiline annotations on parameters
 
 # 0.1.1
