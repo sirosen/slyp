@@ -115,8 +115,11 @@ def is_python(filename: str) -> bool:
         return False
 
     # but otherwise, look for a shebang which contains 'python' as a substring
-    with open(filename, encoding="utf-8") as fp:
-        firstline = fp.readline()
+    try:
+        with open(filename, encoding="utf-8") as fp:
+            firstline = fp.readline()
+    except UnicodeDecodeError:
+        return False
     if firstline.startswith("#!") and "python" in firstline:
         return True
 

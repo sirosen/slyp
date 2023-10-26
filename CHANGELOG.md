@@ -1,5 +1,7 @@
 # Unreleased
 
+- Improve handling on non-UTF8 files under `--use-git-ls`
+
 # 0.1.2
 
 - Add `W120` for catching unparenthesized multiline annotations on parameters
