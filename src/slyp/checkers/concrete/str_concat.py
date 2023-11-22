@@ -3,6 +3,8 @@ from __future__ import annotations
 import libcst
 import libcst.matchers
 
+from ._base import ErrorCollectingVisitor
+
 UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER = libcst.matchers.ConcatenatedString(  # noqa: E501
     whitespace_between=(
         libcst.matchers.SimpleWhitespace(
@@ -85,13 +87,8 @@ W103_IN_ELEMENT_LIST_MATCHER = libcst.matchers.OneOf(
 )
 
 
-class StrConcatErrorCollector(libcst.CSTVisitor):
+class StrConcatErrorCollector(ErrorCollectingVisitor):
     METADATA_DEPENDENCIES = (libcst.metadata.PositionProvider,)
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.filename: str = "<unset>"
-        self.errors: set[tuple[int, str, str]] = set()
 
     def visit_ConcatenatedString(self, node: libcst.ConcatenatedString) -> None:
         # check for 'unnecessary string concat' situations

@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import libcst
 
+from ._base import ErrorCollectingVisitor
 from .annotation_wrap import AnnotationWrapErrorCollector
 from .str_concat import StrConcatErrorCollector
 
-_VISITORS = [AnnotationWrapErrorCollector(), StrConcatErrorCollector()]
+_VISITORS: list[ErrorCollectingVisitor] = [
+    AnnotationWrapErrorCollector(),
+    StrConcatErrorCollector(),
+]
 
 
 def run_cst_checkers(filename: str, content: bytes) -> set[tuple[int, str]]:
