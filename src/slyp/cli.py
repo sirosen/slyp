@@ -11,6 +11,7 @@ import typing as t
 
 from slyp.checkers import check_file
 from slyp.codes import CODE_MAP
+from slyp.fixers import fix_file
 
 DEFAULT_DISABLED_CODES: set[str] = {"W201", "W202", "W203"}
 
@@ -51,6 +52,11 @@ def main() -> None:
         ),
         default="",
     )
+    parser.add_argument(
+        "--fix",
+        help=("(Experimental) Fix errors where possible."),
+        action="store_true",
+    )
     parser.add_argument("files", nargs="*", help="default: all python files")
     args = parser.parse_args()
     if args.use_git_ls and args.files:
@@ -74,6 +80,8 @@ def main() -> None:
             )
             and success
         )
+        if args.fix:
+            success = fix_file(filename, verbose=args.verbose) and success
 
     if not success:
         sys.exit(1)
