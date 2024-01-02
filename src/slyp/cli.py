@@ -15,23 +15,14 @@ from slyp.fixers import fix_file
 
 DEFAULT_DISABLED_CODES: set[str] = {"W201", "W202", "W203"}
 
-HELP = """
-slyp is a linter which checks for stylistic issues in Python code which may be
-correctness problems or opportunities for improvement
-"""
-
-for code in CODE_MAP.values():
-    if code.hidden:
-        continue
-    HELP += f"""
-
-{code.code}: {code.message}{"(disabled by default)" if code.default_disabled else ""}
-{textwrap.indent(code.example, "    ")}"""
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description=HELP, formatter_class=argparse.RawDescriptionHelpFormatter
+        description="slyp is a linter and fixer for Python code",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--list", action="store_true", help="list all error and warning codes"
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="increase output verbosity"
@@ -52,13 +43,13 @@ def main() -> None:
         ),
         default="",
     )
-    parser.add_argument(
-        "--fix",
-        help=("(Experimental) Fix errors where possible."),
-        action="store_true",
-    )
     parser.add_argument("files", nargs="*", help="default: all python files")
     args = parser.parse_args()
+
+    if args.list:
+        list_codes()
+        sys.exit(0)
+
     if args.use_git_ls and args.files:
         parser.error("--use-git-ls requires no filenames as arguments")
 
@@ -72,7 +63,8 @@ def main() -> None:
     success = True
     for filename in all_py_filenames(args.files, args.use_git_ls):
         success = (
-            check_file(
+            fix_file(filename, verbose=args.verbose)
+            and check_file(
                 filename,
                 verbose=args.verbose,
                 disabled_codes=disabled_codes,
@@ -80,8 +72,6 @@ def main() -> None:
             )
             and success
         )
-        if args.fix:
-            success = fix_file(filename, verbose=args.verbose) and success
 
     if not success:
         sys.exit(1)
@@ -132,3 +122,21 @@ def is_python(filename: str) -> bool:
         return True
 
     return False
+
+
+def list_codes() -> None:
+    first = True
+    for code in CODE_MAP.values():
+        if code.hidden:
+            continue
+        if first:
+            first = False
+        else:
+            print()
+
+        if code.default_disabled:
+            description: str = f"{code.message} (disabled by default)"
+        else:
+            description = code.message
+        print(f"{code.code}: {description}")
+        print(textwrap.indent(code.example, "    "))

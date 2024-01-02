@@ -27,7 +27,7 @@ def fix_file(filename: str, *, verbose: bool, apply: bool = False) -> bool:
 
         return True
 
-    print(f"fixing {filename}")
+    print(f"slyp: fixing {filename}")
     with open(filename, "wb") as fp:
         fp.write(new_data)
 
