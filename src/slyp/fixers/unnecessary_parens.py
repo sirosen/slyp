@@ -39,6 +39,30 @@ MATCH_ON = (
     getattr(libcst.matchers, type_.__name__)() for type_ in t.get_args(NODE_TYPES)
 )
 
+# The innermost parens should not be removed in some cases, as they are
+# required in some contexts.
+PRESERVE_INNERMOST_PAREN_TYPES: tuple[type[libcst.CSTNode], ...] = (
+    # list of tuples:
+    #   [(1, 2), (3, 4)] != [1, 2, 3, 4]
+    libcst.Tuple,
+    # generator expression passed to a function call:
+    #   foo((x % 2 for x in range(10)), bar)
+    libcst.GeneratorExp,
+    # parens define precedence:
+    #   (1 + 2) * 3 != 1 + 2 * 3
+    libcst.BinaryOperation,
+    libcst.UnaryOperation,
+    # parens are required for usage of the results:
+    #   (foo() if x else bar())["baz"]
+    #   (await foo())["bar"]
+    libcst.IfExp,
+    libcst.Await,
+    # direct access to attributes of integers and floats requires parens:
+    #   (1).bit_length()
+    libcst.Integer,
+    libcst.Float,
+)
+
 
 class UnnecessaryParenthesesFixer(libcst.matchers.MatcherDecoratableTransformer):
     METADATA_DEPENDENCIES = (libcst.metadata.PositionProvider,)
@@ -59,13 +83,6 @@ class UnnecessaryParenthesesFixer(libcst.matchers.MatcherDecoratableTransformer)
             if lpar_line != rpar_line:
                 break
             max_offset = offset
-
-        # The innermost parens should not be removed in some cases, as they are
-        # required in some contexts:
-        # - a literal list of tuples
-        # - generator expression passed to a function call
-        if isinstance(node, (libcst.Tuple, libcst.GeneratorExp)):
-            return max_offset
         return max_offset + 1
 
     @libcst.matchers.leave(libcst.matchers.OneOf(*MATCH_ON))
@@ -73,9 +90,11 @@ class UnnecessaryParenthesesFixer(libcst.matchers.MatcherDecoratableTransformer)
         self, original_node: NODE_TYPES, updated_node: NODE_TYPES
     ) -> NODE_TYPES:
         num_parens_to_unwrap = self._how_many_parens_same_line(original_node)
-        if num_parens_to_unwrap == 0:
+        if isinstance(original_node, PRESERVE_INNERMOST_PAREN_TYPES):
+            num_parens_to_unwrap -= 1
+        if num_parens_to_unwrap <= 0:
             return updated_node
         return updated_node.with_changes(
-            lpar=updated_node.lpar[:-(num_parens_to_unwrap)],
-            rpar=updated_node.rpar[(num_parens_to_unwrap):],
+            lpar=updated_node.lpar[:-num_parens_to_unwrap],
+            rpar=updated_node.rpar[num_parens_to_unwrap:],
         )
