@@ -9,7 +9,7 @@ _FIXERS: list[libcst.CSTTransformer] = [
 ]
 
 
-def fix_file(filename: str, *, verbose: bool, apply: bool = False) -> bool:
+def fix_file(filename: str, *, verbose: bool) -> bool:
     """returns True if no changes were needed"""
     with open(filename, "rb") as fp:
         bin_data = fp.read()
@@ -23,7 +23,7 @@ def fix_file(filename: str, *, verbose: bool, apply: bool = False) -> bool:
 
     if new_data == bin_data:
         if verbose:
-            print(f"fixing {filename} made no changes")
+            print(f"slyp: no changes to {filename}")
 
         return True
 
