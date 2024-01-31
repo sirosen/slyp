@@ -1,6 +1,8 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+# 0.2.2
+
 - Preserve the innermost parentheses when used inside of splat-argument
   expansion. e.g., `foo(*("a b".split()))` is NOT fixed to
   `foo(*"a b".split())`. This is semantically equivalent to the version with
