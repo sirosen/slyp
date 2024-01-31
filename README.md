@@ -51,7 +51,7 @@ Or as a pre-commit hook using the following `pre-commit-config.yaml`:
 
 ```yaml
 - repo: https://github.com/sirosen/slyp
-  rev: 0.1.0
+  rev: 0.2.0
   hooks:
     - id: slyp
 ```

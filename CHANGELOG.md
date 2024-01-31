@@ -1,4 +1,7 @@
 # Unreleased
+<!-- changelog-unreleased-marker -->
+
+# 0.2.0
 
 - Improve handling on non-UTF8 files under `--use-git-ls`
 - Helptext (`slyp --help`) now does not list all linting codes. Use

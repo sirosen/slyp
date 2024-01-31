@@ -34,7 +34,7 @@ def update_changelog(new_version):
         marker,
         f"""{marker}
 
-## {new_version}""",
+# {new_version}""",
     )
     with open("CHANGELOG.md", "w") as fp:
         fp.write(content)
