@@ -3,6 +3,8 @@
 - Improve handling on non-UTF8 files under `--use-git-ls`
 - Introduce autofixer behavior. Fixing is always run before linting, so that
   emitted lint errors are accurate to the fixed file.
+  - The first autofixer has been added: remove unnecessary parentheses for
+    expressions wrapped in multiple parentheses.
 
 # 0.1.2
 
