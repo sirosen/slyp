@@ -1,6 +1,8 @@
 # Unreleased
 
 - Improve handling on non-UTF8 files under `--use-git-ls`
+- Helptext (`slyp --help`) now does not list all linting codes. Use
+  `slyp --list` to view this data.
 - Introduce autofixer behavior. Fixing is always run before linting, so that
   emitted lint errors are accurate to the fixed file.
   - The first autofixer has been added: remove unnecessary parentheses for
