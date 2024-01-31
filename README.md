@@ -2,6 +2,8 @@
 
 Stephen Lints Your Python
 
+An opinionated linter and fixer.
+
 [![PyPI - Version](https://img.shields.io/pypi/v/slyp.svg)](https://pypi.org/project/slyp)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/slyp.svg)](https://pypi.org/project/slyp)
 
@@ -19,12 +21,13 @@ Stephen Lints Your Python
 
 :wave:
 
-I'm Stephen. I'm going to lint your Python code.
+I'm Stephen. I'm going to lint (and fix) your Python code.
 
 I wrote this linter because nothing else out there implemented these rules, and
 some of them needed CST (rather than AST), so there was no plugin framework
 (e.g. flake8 plugins) which I could use.
-I hope it helps you catch slyp-ups.
+
+I hope it helps you.
 
 ## Installation
 
@@ -41,7 +44,7 @@ pip install slyp
 Either use it as a CLI tool:
 
 ```console
-slyp src/
+slyp
 ```
 
 Or as a pre-commit hook using the following `pre-commit-config.yaml`:
