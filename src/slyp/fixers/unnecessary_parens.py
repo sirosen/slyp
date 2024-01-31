@@ -52,6 +52,9 @@ PRESERVE_INNERMOST_PAREN_TYPES: tuple[type[libcst.CSTNode], ...] = (
     #   (1 + 2) * 3 != 1 + 2 * 3
     libcst.BinaryOperation,
     libcst.UnaryOperation,
+    # precedence also for comparisons:
+    #   (x is y) in truefalsecontainer
+    libcst.Comparison,
     # parens are required for usage of the results:
     #   (foo() if x else bar())["baz"]
     #   (await foo())["bar"]
@@ -68,16 +71,17 @@ class UnnecessaryParenthesesFixer(libcst.matchers.MatcherDecoratableTransformer)
     METADATA_DEPENDENCIES = (libcst.metadata.PositionProvider,)
 
     def _how_many_parens_same_line(self, node: libcst.CSTNode) -> int:
-        if not node.lpar:
+        lpar, rpar = node.lpar, node.rpar  # type: ignore[attr-defined]
+        if not lpar:
             return 0
 
         max_offset = -1
-        for offset in range(len(node.lpar)):
+        for offset in range(len(lpar)):
             lpar_line = self.get_metadata(
-                libcst.metadata.PositionProvider, node.lpar[-(offset + 1)]
+                libcst.metadata.PositionProvider, lpar[-(offset + 1)]
             ).start.line
             rpar_line = self.get_metadata(
-                libcst.metadata.PositionProvider, node.rpar[offset]
+                libcst.metadata.PositionProvider, rpar[offset]
             ).start.line
 
             if lpar_line != rpar_line:

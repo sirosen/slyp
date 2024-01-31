@@ -1,6 +1,9 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+- Fix unnecessary paren fixer aggressively fixing Comparison nodes. Add this to
+  the set of nodes which retain their innermost parens.
+
 # 0.2.0
 
 - Improve handling on non-UTF8 files under `--use-git-ls`

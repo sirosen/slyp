@@ -28,6 +28,7 @@ e = (foo() if x else bar())["baz"]
 f = (await foo())["bar"]
 g = (1).bit_length()
 h = (2.2).is_integer()
+i = (x is y) in truefalsecontainer
 """
     tmpdir.join("foo.py").write(body)
     res = fix_file("foo.py", verbose=True)

@@ -39,6 +39,7 @@ def _fix_data(content: bytes) -> bytes:
     tree = libcst.MetadataWrapper(raw_tree)
 
     for fixer in _FIXERS:
-        tree = tree.visit(fixer)
+        tree = tree.visit(fixer)  # type: ignore[assignment]
 
-    return tree.code.encode("utf-8")
+    code: str = tree.code  # type: ignore[attr-defined]
+    return code.encode("utf-8")
