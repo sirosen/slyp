@@ -72,8 +72,6 @@ class UnnecessaryParenthesesFixer(libcst.matchers.MatcherDecoratableTransformer)
 
     def _how_many_parens_same_line(self, node: libcst.CSTNode) -> int:
         lpar, rpar = node.lpar, node.rpar  # type: ignore[attr-defined]
-        if not lpar:
-            return 0
 
         max_offset = -1
         for offset in range(len(lpar)):
@@ -93,8 +91,16 @@ class UnnecessaryParenthesesFixer(libcst.matchers.MatcherDecoratableTransformer)
     def modify_parenthesized_node(
         self, original_node: NODE_TYPES, updated_node: NODE_TYPES
     ) -> NODE_TYPES:
+        if not original_node.lpar:
+            return updated_node
+
+        preserve_innermost = isinstance(original_node, PRESERVE_INNERMOST_PAREN_TYPES)
+
+        if preserve_innermost and len(original_node.lpar) == 1:
+            return updated_node
+
         num_parens_to_unwrap = self._how_many_parens_same_line(original_node)
-        if isinstance(original_node, PRESERVE_INNERMOST_PAREN_TYPES):
+        if preserve_innermost:
             num_parens_to_unwrap -= 1
         if num_parens_to_unwrap <= 0:
             return updated_node
