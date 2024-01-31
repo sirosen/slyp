@@ -1,6 +1,8 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+# 0.2.1
+
 - Fix unnecessary paren fixer aggressively fixing Comparison nodes. Add this to
   the set of nodes which retain their innermost parens.
 
