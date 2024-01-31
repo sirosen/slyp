@@ -68,7 +68,10 @@ PRESERVE_INNERMOST_PAREN_TYPES: tuple[type[libcst.CSTNode], ...] = (
 
 
 class UnnecessaryParenthesesFixer(libcst.matchers.MatcherDecoratableTransformer):
-    METADATA_DEPENDENCIES = (libcst.metadata.PositionProvider,)
+    METADATA_DEPENDENCIES = (
+        libcst.metadata.PositionProvider,
+        libcst.metadata.ParentNodeProvider,
+    )
 
     def _how_many_parens_same_line(self, node: libcst.CSTNode) -> int:
         lpar, rpar = node.lpar, node.rpar  # type: ignore[attr-defined]
@@ -87,6 +90,13 @@ class UnnecessaryParenthesesFixer(libcst.matchers.MatcherDecoratableTransformer)
             max_offset = offset
         return max_offset + 1
 
+    def _parent_node_is_argsplat(self, node: libcst.CSTNode) -> bool:
+        """check if the parent of the node is *-expansion of an arg"""
+        parent = self.get_metadata(libcst.metadata.ParentNodeProvider, node)
+        if not isinstance(parent, libcst.Arg):
+            return False
+        return bool(parent.star)
+
     @libcst.matchers.leave(libcst.matchers.OneOf(*MATCH_ON))
     def modify_parenthesized_node(
         self, original_node: NODE_TYPES, updated_node: NODE_TYPES
@@ -95,6 +105,8 @@ class UnnecessaryParenthesesFixer(libcst.matchers.MatcherDecoratableTransformer)
             return updated_node
 
         preserve_innermost = isinstance(original_node, PRESERVE_INNERMOST_PAREN_TYPES)
+        if not preserve_innermost and self._parent_node_is_argsplat(original_node):
+            preserve_innermost = True
 
         if preserve_innermost and len(original_node.lpar) == 1:
             return updated_node

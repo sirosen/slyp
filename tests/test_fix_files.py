@@ -62,3 +62,22 @@ a = ((((((("foo")))))))
     assert not res
     assert "slyp: fixing foo.py" in capsys.readouterr().out
     assert tmpdir.join("foo.py").read() == 'a = "foo"\n'
+
+
+def test_paren_fixer_preserves_innermost_under_splatarg(capsys, tmpdir):
+    os.chdir(tmpdir)
+    tmpdir.join("foo.py").write(
+        """\
+foo(*(("a b c".split())))
+"""
+    )
+    res = fix_file("foo.py", verbose=False)
+
+    assert not res
+    assert "slyp: fixing foo.py" in capsys.readouterr().out
+    assert (
+        tmpdir.join("foo.py").read()
+        == """\
+foo(*("a b c".split()))
+"""
+    )

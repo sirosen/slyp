@@ -1,6 +1,11 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+- Preserve the innermost parentheses when used inside of splat-argument
+  expansion. e.g., `foo(*("a b".split()))` is NOT fixed to
+  `foo(*"a b".split())`. This is semantically equivalent to the version with
+  the parentheses removed, but not as obvious to readers.
+
 # 0.2.1
 
 - Fix unnecessary paren fixer aggressively fixing Comparison nodes. Add this to
