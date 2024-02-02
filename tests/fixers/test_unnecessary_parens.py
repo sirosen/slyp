@@ -32,6 +32,7 @@ def test_fix_unnecessary_double_paren_tuple(capsys, fix_text):
     new_text = fix_text(
         "a = ((1, 2))\n",
         verbose=True,
+        filename="foo.py",
     )
 
     assert "slyp: fixing foo.py" in capsys.readouterr().out

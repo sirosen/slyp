@@ -11,7 +11,8 @@ def fix_text(tmpdir):
         text, *, expect_changes=True, verbose=False, dedent=True, filename="X.py"
     ):
         handle = tmpdir.join(filename)
-        handle.write(textwrap.dedent(text) if dedent else text)
+        text = textwrap.dedent(text) if dedent else text
+        handle.write(text)
         with tmpdir.as_cwd():
             res = fix_file(filename, verbose=verbose)
             new_text = handle.read()
