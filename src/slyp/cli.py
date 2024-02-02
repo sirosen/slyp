@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import argparse
 import glob
+import json
 import os
 import stat
 import subprocess
 import sys
 import textwrap
+import time
 import typing as t
 
 from slyp.checkers import check_file
@@ -27,6 +29,8 @@ def main() -> None:
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="increase output verbosity"
     )
+    # hidden option for quick-and-dirty profiling
+    parser.add_argument("--debug-timings", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument(
         "--use-git-ls", action="store_true", help="find python files from git-ls-files"
     )
@@ -61,10 +65,13 @@ def main() -> None:
         disabled_codes = disabled_codes | DEFAULT_DISABLED_CODES
 
     success = True
+    timings = {}
     for filename in all_py_filenames(args.files, args.use_git_ls):
+        start = time.time()
+        success = fix_file(filename, verbose=args.verbose) and success
+        after_fix = time.time()
         success = (
-            fix_file(filename, verbose=args.verbose)
-            and check_file(
+            check_file(
                 filename,
                 verbose=args.verbose,
                 disabled_codes=disabled_codes,
@@ -72,6 +79,13 @@ def main() -> None:
             )
             and success
         )
+        after_check = time.time()
+        timings[filename] = {
+            "fix": after_fix - start,
+            "check": after_check - after_fix,
+        }
+    if args.debug_timings:
+        print(json.dumps(timings, indent=2, separators=(",", ": ")))
 
     if not success:
         sys.exit(1)

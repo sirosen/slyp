@@ -42,4 +42,4 @@ def _fix_data(content: bytes) -> bytes:
         tree = tree.visit(fixer)  # type: ignore[assignment]
 
     code: str = tree.code  # type: ignore[attr-defined]
-    return code.encode("utf-8")
+    return code.encode(tree.encoding)
