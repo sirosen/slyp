@@ -5,7 +5,35 @@ import typing as t
 import libcst
 import libcst.matchers
 
-N = t.TypeVar("N", bound=libcst.CSTNode)
+NodeTypes = t.Union[
+    libcst.Name,
+    libcst.Attribute,
+    libcst.Subscript,
+    libcst.Call,
+    libcst.StarredElement,
+    libcst.Dict,
+    libcst.DictComp,
+    libcst.List,
+    libcst.ListComp,
+    libcst.Set,
+    libcst.SetComp,
+    libcst.Tuple,
+    libcst.UnaryOperation,
+    libcst.BinaryOperation,
+    libcst.Comparison,
+    libcst.Ellipsis,
+    libcst.Integer,
+    libcst.Float,
+    libcst.SimpleString,
+    libcst.ConcatenatedString,
+    libcst.FormattedString,
+    libcst.Lambda,
+    libcst.Yield,
+    libcst.GeneratorExp,
+    libcst.IfExp,
+    libcst.Await,
+]
+N = t.TypeVar("N", bound=NodeTypes)
 
 
 class UnnecessaryParenthesesFixer(libcst.CSTTransformer):
@@ -28,16 +56,14 @@ class UnnecessaryParenthesesFixer(libcst.CSTTransformer):
             self.in_star_arg -= 1
         return updated_node
 
-    def _how_many_parens_same_line(self, node: libcst.CSTNode) -> int:
-        lpar, rpar = node.lpar, node.rpar  # type: ignore[attr-defined]
-
+    def _how_many_parens_same_line(self, node: N) -> int:
         max_offset = -1
-        for offset in range(len(lpar)):
+        for offset in range(len(node.lpar)):
             lpar_line = self.get_metadata(
-                libcst.metadata.PositionProvider, lpar[-(offset + 1)]
+                libcst.metadata.PositionProvider, node.lpar[-(offset + 1)]
             ).start.line
             rpar_line = self.get_metadata(
-                libcst.metadata.PositionProvider, rpar[offset]
+                libcst.metadata.PositionProvider, node.rpar[offset]
             ).start.line
 
             if lpar_line != rpar_line:
@@ -46,11 +72,7 @@ class UnnecessaryParenthesesFixer(libcst.CSTTransformer):
         return max_offset + 1
 
     def modify_parenthesized_node(
-        self,
-        original_node: N,
-        updated_node: N,
-        *,
-        preserve_innermost: bool = False,
+        self, original_node: N, updated_node: N, *, preserve_innermost: bool = False
     ) -> N:
         if not preserve_innermost and self.in_star_arg > 0:
             # check if the parent of the node is *-expansion of an arg
@@ -68,7 +90,7 @@ class UnnecessaryParenthesesFixer(libcst.CSTTransformer):
             num_parens_to_unwrap -= 1
         if num_parens_to_unwrap <= 0:
             return updated_node
-        return updated_node.with_changes(
+        return updated_node.with_changes(  # type: ignore[return-value]
             lpar=updated_node.lpar[:-num_parens_to_unwrap],
             rpar=updated_node.rpar[num_parens_to_unwrap:],
         )
@@ -321,7 +343,7 @@ class UnnecessaryParenthesesFixer(libcst.CSTTransformer):
             preserve_innermost=True,
         )
 
-    def leave_IfExpr(
+    def leave_IfExp(
         self, original_node: libcst.IfExp, updated_node: libcst.IfExp
     ) -> libcst.IfExp:
         # parens are required for usage of the results:
