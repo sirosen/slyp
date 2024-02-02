@@ -81,3 +81,25 @@ foo(*(("a b c".split())))
 foo(*("a b c".split()))
 """
     )
+
+
+def test_paren_fixer_preserves_innermost_of_lambda(capsys, tmpdir):
+    os.chdir(tmpdir)
+    tmpdir.join("foo.py").write(
+        """\
+x = lambda: 1, 2
+y = (lambda: 1), 2
+z = (lambda: 1)(2)
+"""
+    )
+    res = fix_file("foo.py", verbose=False)
+
+    assert res
+    assert (
+        tmpdir.join("foo.py").read()
+        == """\
+x = lambda: 1, 2
+y = (lambda: 1), 2
+z = (lambda: 1)(2)
+"""
+    )

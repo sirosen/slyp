@@ -1,6 +1,9 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+- Fix the handling of parenthesized lambdas in the fixer. The innermost
+  parentheses arounda lambda are now preserved.
+
 # 0.2.2
 
 - Preserve the innermost parentheses when used inside of splat-argument

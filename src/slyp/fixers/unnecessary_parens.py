@@ -64,6 +64,13 @@ PRESERVE_INNERMOST_PAREN_TYPES: tuple[type[libcst.CSTNode], ...] = (
     #   (1).bit_length()
     libcst.Integer,
     libcst.Float,
+    # lambdas can have attributes:
+    #   (lambda x: x + 1).__code__
+    # and can be called (although it's sort of pointless)::
+    #   (lambda x: x + 1)(2)
+    # and also may parse (for a human) less ambiguously with parens:
+    #   (lambda x: x + 1), 2
+    libcst.Lambda,
 )
 
 
