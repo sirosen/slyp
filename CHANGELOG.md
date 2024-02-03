@@ -3,6 +3,13 @@
 
 - Fix the handling of parenthesized lambdas in the fixer. The innermost
   parentheses arounda lambda are now preserved.
+- Minor speed enhancements.
+- Fix the handling of autofixing in certain expressions when there is no
+  whitespace between a hard keyword and a parenthesis, inserting spaces when
+  necessary.
+- Fix unnecessarily parenthesized `with` and `from ... import ...` statements.
+- Preserve parentheses immediately under unary operations, as they may aid
+  readability.
 
 # 0.2.2
 
