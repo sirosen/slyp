@@ -317,3 +317,12 @@ def test_import_from_gets_space_inserted(fix_text):
         """
     )
     assert new_text == "from foo import bar, baz\n"
+
+
+def test_unary_op_preserves_parens(fix_text):
+    fix_text(
+        """\
+        foo(~(bar.baz()))
+        """,
+        expect_changes=False,
+    )

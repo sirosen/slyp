@@ -43,6 +43,7 @@ class SlypTransformer(libcst.CSTTransformer):
 
     def __init__(self) -> None:
         self.in_star_arg: int = 0
+        self.in_unary_op: int = 0
 
     def _singular_parens_are_same_line(
         self, node: libcst.With | libcst.ImportFrom
@@ -80,12 +81,20 @@ class SlypTransformer(libcst.CSTTransformer):
     def modify_parenthesized_node(
         self, original_node: PFN, updated_node: PFN, *, preserve_innermost: bool = False
     ) -> PFN:
+        parent: libcst.CSTNode | None = None
         if not preserve_innermost and self.in_star_arg > 0:
             # check if the parent of the node is *-expansion of an arg
             parent = self.get_metadata(
                 libcst.metadata.ParentNodeProvider, original_node
             )
             if isinstance(parent, libcst.Arg) and bool(parent.star):
+                preserve_innermost = True
+        if not preserve_innermost and self.in_unary_op > 0:
+            if parent is None:
+                parent = self.get_metadata(
+                    libcst.metadata.ParentNodeProvider, original_node
+                )
+            if isinstance(parent, libcst.UnaryOperation):
                 preserve_innermost = True
 
         if preserve_innermost and len(original_node.lpar) == 1:
@@ -201,9 +210,13 @@ class SlypTransformer(libcst.CSTTransformer):
 
     # operators
 
+    def visit_UnaryOperation(self, node: libcst.UnaryOperation) -> None:
+        self.in_unary_op += 1
+
     def leave_UnaryOperation(
         self, original_node: libcst.UnaryOperation, updated_node: libcst.UnaryOperation
     ) -> libcst.UnaryOperation:
+        self.in_unary_op -= 1
         # parens define precedence
         if len(original_node.lpar) < 2:
             return updated_node
