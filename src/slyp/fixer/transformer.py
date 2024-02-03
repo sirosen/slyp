@@ -388,3 +388,12 @@ class SlypTransformer(libcst.CSTTransformer):
         if changes:
             return updated_node.with_changes(**changes)
         return updated_node
+
+    def leave_If(self, original_node: libcst.If, updated_node: libcst.If) -> libcst.If:
+        # inject whitespace if missing
+        # ensures that `if(x): ...` converts to `if x: ...`
+        if not original_node.whitespace_before_test.empty:
+            return updated_node
+        return updated_node.with_changes(
+            whitespace_before_test=libcst.SimpleWhitespace(" ")
+        )
