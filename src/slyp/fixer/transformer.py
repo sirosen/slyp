@@ -366,3 +366,25 @@ class SlypTransformer(libcst.CSTTransformer):
         return updated_node.with_changes(
             whitespace_after_match=libcst.SimpleWhitespace(" ")
         )
+
+    def leave_With(
+        self, original_node: libcst.With, updated_node: libcst.With
+    ) -> libcst.With:
+        changes: dict[str, t.Any] = {}
+        if original_node.whitespace_after_with.empty:
+            changes["whitespace_after_with"] = libcst.SimpleWhitespace(" ")
+        if libcst.matchers.matches(original_node.lpar, libcst.matchers.LeftParen()):
+            lpar_line = self.get_metadata(
+                libcst.metadata.PositionProvider,
+                libcst.ensure_type(original_node.lpar, libcst.LeftParen),
+            ).start.line
+            rpar_line = self.get_metadata(
+                libcst.metadata.PositionProvider,
+                libcst.ensure_type(original_node.rpar, libcst.RightParen),
+            ).start.line
+            if lpar_line == rpar_line:
+                changes["lpar"] = libcst.MaybeSentinel.DEFAULT
+                changes["rpar"] = libcst.MaybeSentinel.DEFAULT
+        if changes:
+            return updated_node.with_changes(**changes)
+        return updated_node

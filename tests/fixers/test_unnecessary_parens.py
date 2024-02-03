@@ -278,3 +278,18 @@ def test_match_with_paren_gets_space_inserted(fix_text):
                 pass
         """
     )
+
+
+def test_with_with_paren_gets_space_inserted(fix_text):
+    new_text = fix_text(
+        """\
+        with(x()):
+            pass
+        """
+    )
+    assert new_text == textwrap.dedent(
+        """\
+        with x():
+            pass
+        """
+    )
