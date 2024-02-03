@@ -10,7 +10,6 @@ NodeTypes = t.Union[
     libcst.Attribute,
     libcst.Subscript,
     libcst.Call,
-    libcst.StarredElement,
     libcst.Dict,
     libcst.DictComp,
     libcst.List,
@@ -121,15 +120,6 @@ class UnnecessaryParenthesesFixer(libcst.CSTTransformer):
     def leave_Call(
         self, original_node: libcst.Call, updated_node: libcst.Call
     ) -> libcst.Call:
-        if not original_node.lpar:
-            return updated_node
-        return self.modify_parenthesized_node(original_node, updated_node)
-
-    # star expansions
-
-    def leave_StarredElement(
-        self, original_node: libcst.StarredElement, updated_node: libcst.StarredElement
-    ) -> libcst.StarredElement:
         if not original_node.lpar:
             return updated_node
         return self.modify_parenthesized_node(original_node, updated_node)

@@ -96,17 +96,6 @@ def test_names_attributes_and_indexing(fix_text):
     )
 
 
-@pytest.mark.xfail
-def test_starred_elements(fix_text):
-    new_text = fix_text(
-        """\
-        a = (b, *c)
-        a = (b, (*c))
-        """
-    )
-    assert new_text == "a = (b, *c)\na = (b, *c)\n"
-
-
 def test_collection_types(fix_text):
     new_text = fix_text(
         """\
