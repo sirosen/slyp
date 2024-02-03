@@ -3,11 +3,9 @@ from __future__ import annotations
 import libcst
 
 from ._base import ErrorCollectingVisitor
-from .annotation_wrap import AnnotationWrapErrorCollector
 from .str_concat import StrConcatErrorCollector
 
 _VISITORS: list[ErrorCollectingVisitor] = [
-    AnnotationWrapErrorCollector(),
     StrConcatErrorCollector(),
 ]
 

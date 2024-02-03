@@ -270,22 +270,3 @@ if foo is None:
         "foo.py:1: returning a variable checked as None, "
         "rather than returning None (E110)"
     ) in capsys.readouterr().out
-
-
-def test_check_captures_w120(tmpdir, capsys):
-    os.chdir(tmpdir)
-    tmpdir.join("foo.py").write(
-        """\
-def foo(
-    x: int |
-    str
-):
-    return x
-"""
-    )
-    res = check_file("foo.py", verbose=False, disabled_codes=set(), enabled_codes=set())
-    assert res is False
-
-    assert (
-        "foo.py:2: unparenthesized multiline union in parameter annotation (W120)"
-    ) in capsys.readouterr().out

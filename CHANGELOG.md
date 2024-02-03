@@ -10,6 +10,7 @@
 - Fix unnecessarily parenthesized `with` and `from ... import ...` statements.
 - Preserve parentheses immediately under unary operations, as they may aid
   readability.
+- Remove W120. It is automatically fixed by the latest `black` versions.
 
 # 0.2.2
 

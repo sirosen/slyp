@@ -129,18 +129,6 @@ x = {  # or a set
 }
 ```
 
-### W120
-
-'unparenthesized multiline union in parameter annotation'
-
-```python
-def foo(
-    x: int |
-    str
-):
-    return x
-```
-
 ### E110
 
 'returning a variable checked as None, rather than returning None'
