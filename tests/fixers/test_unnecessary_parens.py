@@ -131,7 +131,6 @@ def test_collection_types(fix_text):
     )
 
 
-@pytest.mark.xfail
 def test_operators_and_numerics(fix_text):
     new_text = fix_text(
         """\
@@ -139,7 +138,7 @@ def test_operators_and_numerics(fix_text):
         b = ((~ (1 - 2))) * 3 - 2.2
         c = (((a < b) | 1))
         d = a * b
-        e = !d
+        e = -d
         """
     )
     assert new_text == textwrap.dedent(
@@ -148,7 +147,7 @@ def test_operators_and_numerics(fix_text):
         b = (~ (1 - 2)) * 3 - 2.2
         c = ((a < b) | 1)
         d = a * b
-        e = !d
+        e = -d
         """
     )
 

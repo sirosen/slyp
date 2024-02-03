@@ -186,8 +186,7 @@ class UnnecessaryParenthesesFixer(libcst.CSTTransformer):
     def leave_UnaryOperation(
         self, original_node: libcst.UnaryOperation, updated_node: libcst.UnaryOperation
     ) -> libcst.UnaryOperation:
-        # parens define precedence:
-        #   ~ x * y != (~x) * y
+        # parens define precedence
         if len(original_node.lpar) < 2:
             return updated_node
         return self.modify_parenthesized_node(
@@ -201,8 +200,7 @@ class UnnecessaryParenthesesFixer(libcst.CSTTransformer):
         original_node: libcst.BinaryOperation,
         updated_node: libcst.BinaryOperation,
     ) -> libcst.BinaryOperation:
-        # parens define precedence:
-        #   ~ x * y != (~x) * y
+        # parens define precedence
         if len(original_node.lpar) < 2:
             return updated_node
         return self.modify_parenthesized_node(
@@ -214,8 +212,7 @@ class UnnecessaryParenthesesFixer(libcst.CSTTransformer):
     def leave_Comparison(
         self, original_node: libcst.Comparison, updated_node: libcst.Comparison
     ) -> libcst.Comparison:
-        # parens define precedence:
-        #   (x is y) in truefalsecontainer
+        # parens define precedence
         if len(original_node.lpar) < 2:
             return updated_node
         return self.modify_parenthesized_node(
