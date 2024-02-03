@@ -308,3 +308,12 @@ def test_if_with_paren_gets_space_inserted(fix_text):
             pass
         """
     )
+
+
+def test_import_from_gets_space_inserted(fix_text):
+    new_text = fix_text(
+        """\
+        from foo import(bar, baz)
+        """
+    )
+    assert new_text == "from foo import bar, baz\n"

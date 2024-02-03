@@ -44,6 +44,24 @@ class SlypTransformer(libcst.CSTTransformer):
     def __init__(self) -> None:
         self.in_star_arg: int = 0
 
+    def _singular_parens_are_same_line(
+        self, node: libcst.With | libcst.ImportFrom
+    ) -> bool:
+        if node.lpar is not None and libcst.matchers.matches(
+            node.lpar, libcst.matchers.LeftParen()
+        ):
+            lpar_line = self.get_metadata(
+                libcst.metadata.PositionProvider,
+                libcst.ensure_type(node.lpar, libcst.LeftParen),
+            ).start.line
+            rpar_line = self.get_metadata(
+                libcst.metadata.PositionProvider,
+                libcst.ensure_type(node.rpar, libcst.RightParen),
+            ).start.line
+            return lpar_line == rpar_line
+
+        return False
+
     def _how_many_parens_same_line(self, node: PFN) -> int:
         max_offset = -1
         for offset in range(len(node.lpar)):
@@ -370,21 +388,13 @@ class SlypTransformer(libcst.CSTTransformer):
     def leave_With(
         self, original_node: libcst.With, updated_node: libcst.With
     ) -> libcst.With:
+        # remove parens from `with (foo): ...` as long as they are on the same line
         changes: dict[str, t.Any] = {}
         if original_node.whitespace_after_with.empty:
             changes["whitespace_after_with"] = libcst.SimpleWhitespace(" ")
-        if libcst.matchers.matches(original_node.lpar, libcst.matchers.LeftParen()):
-            lpar_line = self.get_metadata(
-                libcst.metadata.PositionProvider,
-                libcst.ensure_type(original_node.lpar, libcst.LeftParen),
-            ).start.line
-            rpar_line = self.get_metadata(
-                libcst.metadata.PositionProvider,
-                libcst.ensure_type(original_node.rpar, libcst.RightParen),
-            ).start.line
-            if lpar_line == rpar_line:
-                changes["lpar"] = libcst.MaybeSentinel.DEFAULT
-                changes["rpar"] = libcst.MaybeSentinel.DEFAULT
+        if self._singular_parens_are_same_line(original_node):
+            changes["lpar"] = libcst.MaybeSentinel.DEFAULT
+            changes["rpar"] = libcst.MaybeSentinel.DEFAULT
         if changes:
             return updated_node.with_changes(**changes)
         return updated_node
@@ -397,3 +407,16 @@ class SlypTransformer(libcst.CSTTransformer):
         return updated_node.with_changes(
             whitespace_before_test=libcst.SimpleWhitespace(" ")
         )
+
+    def leave_ImportFrom(
+        self, original_node: libcst.ImportFrom, updated_node: libcst.ImportFrom
+    ) -> libcst.ImportFrom:
+        changes: dict[str, t.Any] = {}
+        if original_node.whitespace_after_import.empty:
+            changes["whitespace_after_import"] = libcst.SimpleWhitespace(" ")
+        if self._singular_parens_are_same_line(original_node):
+            changes["lpar"] = None
+            changes["rpar"] = None
+        if changes:
+            return updated_node.with_changes(**changes)
+        return updated_node

@@ -15,7 +15,7 @@ _VISITORS: list[ErrorCollectingVisitor] = [
 def run_cst_checkers(filename: str, content: bytes) -> set[tuple[int, str]]:
     try:
         tree = libcst.parse_module(content)
-    except libcst.ParserSyntaxError:
+    except (libcst.ParserSyntaxError, libcst.CSTValidationError):
         return {(0, "X001")}
     wrapper = libcst.MetadataWrapper(tree)
     for visitor in _VISITORS:
