@@ -257,3 +257,24 @@ def test_await_safe_use_for_precedence(fix_text):
         b = (await foo() if x else bar())
         """
     )
+
+
+def test_match_with_paren_gets_space_inserted(fix_text):
+    new_text = fix_text(
+        """\
+        match(x):
+            case (1, 2):
+                pass
+            case _:
+                pass
+        """
+    )
+    assert new_text == textwrap.dedent(
+        """\
+        match x:
+            case (1, 2):
+                pass
+            case _:
+                pass
+        """
+    )

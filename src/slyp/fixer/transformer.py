@@ -5,7 +5,7 @@ import typing as t
 import libcst
 import libcst.matchers
 
-NodeTypes = t.Union[
+ParenFixNodeTypes = t.Union[
     libcst.Name,
     libcst.Attribute,
     libcst.Subscript,
@@ -32,10 +32,10 @@ NodeTypes = t.Union[
     libcst.IfExp,
     libcst.Await,
 ]
-N = t.TypeVar("N", bound=NodeTypes)
+PFN = t.TypeVar("PFN", bound=ParenFixNodeTypes)
 
 
-class UnnecessaryParenthesesFixer(libcst.CSTTransformer):
+class SlypTransformer(libcst.CSTTransformer):
     METADATA_DEPENDENCIES = (
         libcst.metadata.PositionProvider,
         libcst.metadata.ParentNodeProvider,
@@ -44,18 +44,7 @@ class UnnecessaryParenthesesFixer(libcst.CSTTransformer):
     def __init__(self) -> None:
         self.in_star_arg: int = 0
 
-    def visit_Arg(self, node: libcst.Arg) -> None:
-        if node.star:
-            self.in_star_arg += 1
-
-    def leave_Arg(
-        self, original_node: libcst.Arg, updated_node: libcst.Arg
-    ) -> libcst.Arg:
-        if original_node.star:
-            self.in_star_arg -= 1
-        return updated_node
-
-    def _how_many_parens_same_line(self, node: N) -> int:
+    def _how_many_parens_same_line(self, node: PFN) -> int:
         max_offset = -1
         for offset in range(len(node.lpar)):
             lpar_line = self.get_metadata(
@@ -71,8 +60,8 @@ class UnnecessaryParenthesesFixer(libcst.CSTTransformer):
         return max_offset + 1
 
     def modify_parenthesized_node(
-        self, original_node: N, updated_node: N, *, preserve_innermost: bool = False
-    ) -> N:
+        self, original_node: PFN, updated_node: PFN, *, preserve_innermost: bool = False
+    ) -> PFN:
         if not preserve_innermost and self.in_star_arg > 0:
             # check if the parent of the node is *-expansion of an arg
             parent = self.get_metadata(
@@ -93,6 +82,17 @@ class UnnecessaryParenthesesFixer(libcst.CSTTransformer):
             lpar=updated_node.lpar[:-num_parens_to_unwrap],
             rpar=updated_node.rpar[num_parens_to_unwrap:],
         )
+
+    def visit_Arg(self, node: libcst.Arg) -> None:
+        if node.star:
+            self.in_star_arg += 1
+
+    def leave_Arg(
+        self, original_node: libcst.Arg, updated_node: libcst.Arg
+    ) -> libcst.Arg:
+        if original_node.star:
+            self.in_star_arg -= 1
+        return updated_node
 
     # identifiers, attributes, lookups, and calls
 
@@ -354,4 +354,15 @@ class UnnecessaryParenthesesFixer(libcst.CSTTransformer):
             original_node,
             updated_node,
             preserve_innermost=True,
+        )
+
+    def leave_Match(
+        self, original_node: libcst.Match, updated_node: libcst.Match
+    ) -> libcst.Match:
+        # inject whitespace if missing
+        # ensures that `match(x): ...` converts to `match x: ...`
+        if not original_node.whitespace_after_match.empty:
+            return updated_node
+        return updated_node.with_changes(
+            whitespace_after_match=libcst.SimpleWhitespace(" ")
         )

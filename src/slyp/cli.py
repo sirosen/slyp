@@ -13,7 +13,7 @@ import typing as t
 
 from slyp.checkers import check_file
 from slyp.codes import CODE_MAP
-from slyp.fixers import fix_file
+from slyp.fixer import fix_file
 
 DEFAULT_DISABLED_CODES: set[str] = {"W201", "W202", "W203"}
 

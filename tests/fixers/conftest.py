@@ -2,7 +2,7 @@ import textwrap
 
 import pytest
 
-from slyp.fixers import fix_file
+from slyp.fixer import fix_file
 
 
 @pytest.fixture

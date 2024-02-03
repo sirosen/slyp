@@ -2,11 +2,7 @@ from __future__ import annotations
 
 import libcst
 
-from .unnecessary_parens import UnnecessaryParenthesesFixer
-
-_FIXERS: list[libcst.CSTTransformer] = [
-    UnnecessaryParenthesesFixer(),
-]
+from .transformer import SlypTransformer
 
 
 def fix_file(filename: str, *, verbose: bool) -> bool:
@@ -38,8 +34,7 @@ def _fix_data(content: bytes) -> bytes:
     raw_tree = libcst.parse_module(content)
     tree = libcst.MetadataWrapper(raw_tree)
 
-    for fixer in _FIXERS:
-        tree = tree.visit(fixer)  # type: ignore[assignment]
+    tree = tree.visit(SlypTransformer())  # type: ignore[assignment]
 
     code: str = tree.code  # type: ignore[attr-defined]
     return code.encode(tree.encoding)  # type: ignore[attr-defined]
