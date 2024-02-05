@@ -1,6 +1,8 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+# 0.3.0
+
 - Fix the handling of parenthesized lambdas in the fixer. The innermost
   parentheses arounda lambda are now preserved.
 - Minor speed enhancements.
