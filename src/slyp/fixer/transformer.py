@@ -388,7 +388,9 @@ class SlypTransformer(libcst.CSTTransformer):
         new_node = updated_node
         # inject whitespace if a yield is used without trailing space
         # e.g. `yield('foo')` -> `yield ('foo')`
-        if new_node.value is not None and new_node.whitespace_after_yield.empty:
+        if new_node.value is not None and (
+            new_node.whitespace_after_yield.empty  # type: ignore[union-attr]
+        ):
             new_node = new_node.with_changes(
                 whitespace_after_yield=libcst.SimpleWhitespace(" ")
             )
