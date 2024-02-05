@@ -47,6 +47,8 @@ def test_quote_style_mismatch_suppresses_fixing(fix_text):
         if prefix_a != prefix_b and
         # but not the ones where a str and bytes are concatenated
         ("b" in prefix_a) == ("b" in prefix_b)
+        # and not the special case of "br" and "rb", which are really the same
+        and {prefix_a, prefix_b} != {"br", "rb"}
     ],
 )
 def test_prefix_mismatch_suppresses_fixing(fix_text, prefix_a, prefix_b):
@@ -55,6 +57,21 @@ def test_prefix_mismatch_suppresses_fixing(fix_text, prefix_a, prefix_b):
         a = {prefix_a}"foo " {prefix_b}"bar"
         """,
         expect_changes=False,
+    )
+
+
+def test_prefix_mismatch_is_ignored_in_special_cases(fix_text):
+    new_text = fix_text(
+        """\
+        a = br"foo " rb"bar"
+        b = rb"foo " br"bar"
+        """,
+    )
+    assert new_text == textwrap.dedent(
+        """\
+        a = br"foo bar"
+        b = rb"foo bar"
+        """
     )
 
 

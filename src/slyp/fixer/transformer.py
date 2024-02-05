@@ -335,7 +335,10 @@ class SlypTransformer(libcst.CSTTransformer):
             left: libcst.SimpleString = new_node.left  # type: ignore[assignment]
             right: libcst.SimpleString = new_node.right  # type: ignore[assignment]
             if (
-                left.prefix == right.prefix
+                (
+                    left.prefix == right.prefix
+                    or {left.prefix, right.prefix}.issubset({"br", "rb"})
+                )
                 and left.quote == right.quote
                 and left.quote in {"'", '"'}
             ):
