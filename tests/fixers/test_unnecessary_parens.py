@@ -163,6 +163,7 @@ def test_ellipsis(fix_text):
 
 
 def test_string_styles(fix_text):
+    # note that the ConcatenatedString node will also be fixed to a single string
     new_text = fix_text(
         """\
         x = "foo"
@@ -175,7 +176,7 @@ def test_string_styles(fix_text):
         """\
         x = "foo"
         a = "foo"
-        b = "foo " "bar"
+        b = "foo bar"
         c = f"baz {a}"
         """
     )

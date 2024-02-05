@@ -11,6 +11,9 @@
 - Preserve parentheses immediately under unary operations, as they may aid
   readability.
 - Remove W120. It is automatically fixed by the latest `black` versions.
+- In restricted cases, the fixer will now automatically join implicitly
+  concatenated strings when there is no newline. This autofix covers some cases
+  of E100.
 
 # 0.2.2
 

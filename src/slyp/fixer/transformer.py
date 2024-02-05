@@ -5,6 +5,12 @@ import typing as t
 import libcst
 import libcst.matchers
 
+# SimpleWhitespace defines whitespace as seen between tokens in most contexts
+# it can contain newlines *if* there is a preceding backslash escape
+SIMPLE_WHITESPACE_NO_NEWLINE_MATCHER = libcst.matchers.SimpleWhitespace(
+    value=libcst.matchers.MatchIfTrue(lambda x: "\n" not in x)
+)
+
 ParenFixNodeTypes = t.Union[
     libcst.Name,
     libcst.Attribute,
@@ -302,10 +308,48 @@ class SlypTransformer(libcst.CSTTransformer):
         self,
         original_node: libcst.ConcatenatedString,
         updated_node: libcst.ConcatenatedString,
-    ) -> libcst.ConcatenatedString:
-        if not original_node.lpar:
-            return updated_node
-        return self.modify_parenthesized_node(original_node, updated_node)
+    ) -> libcst.ConcatenatedString | libcst.SimpleString:
+        new_node = updated_node
+        # if the node is parenthesized, potentially strip parens
+        if original_node.lpar:
+            new_node = self.modify_parenthesized_node(original_node, updated_node)
+
+        # if the node is a pair of simple strings with no newline between them,
+        # this may be a chance to join them into a single string node
+        if libcst.matchers.matches(
+            new_node,
+            libcst.matchers.ConcatenatedString(
+                whitespace_between=SIMPLE_WHITESPACE_NO_NEWLINE_MATCHER,
+                left=libcst.matchers.SimpleString(),
+                right=libcst.matchers.SimpleString(),
+            ),
+        ):
+            # check that the left and right match in their prefix and quote characters,
+            # and forbid this change (for now) when one of the two is a multiline string
+            # (TODO: consider when it might be safe to join multiline strings)
+            #
+            # the restriction against differing quote characters allows us to avoid any
+            # attempt to manipulate unescaped quotes in the string values
+            # having done this verification, join the strings into a single node,
+            # preserving the prefix and quote style
+            left: libcst.SimpleString = new_node.left  # type: ignore[assignment]
+            right: libcst.SimpleString = new_node.right  # type: ignore[assignment]
+            if (
+                left.prefix == right.prefix
+                and left.quote == right.quote
+                and left.quote in {"'", '"'}
+            ):
+                return libcst.SimpleString(
+                    lpar=new_node.lpar,
+                    rpar=new_node.rpar,
+                    value=left.prefix
+                    + left.quote
+                    + left.raw_value
+                    + right.raw_value
+                    + left.quote,
+                )
+
+        return new_node
 
     def leave_FormattedString(
         self,
