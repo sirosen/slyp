@@ -385,13 +385,20 @@ class SlypTransformer(libcst.CSTTransformer):
     def leave_Yield(
         self, original_node: libcst.Yield, updated_node: libcst.Yield
     ) -> libcst.Yield:
+        new_node = updated_node
+        # inject whitespace if a yield is used without trailing space
+        # e.g. `yield('foo')` -> `yield ('foo')`
+        if new_node.value is not None and new_node.whitespace_after_yield.empty:
+            new_node = new_node.with_changes(
+                whitespace_after_yield=libcst.SimpleWhitespace(" ")
+            )
         # expression nesting:
         #   return (yield from inner())
-        if len(original_node.lpar) < 2:
-            return updated_node
+        if len(new_node.lpar) < 2:
+            return new_node
         return self.modify_parenthesized_node(
             original_node,
-            updated_node,
+            new_node,
             preserve_innermost=True,
         )
 
