@@ -14,8 +14,8 @@ def fix_file(filename: str, *, verbose: bool) -> bool:
         new_data = _fix_data(bin_data)
     # ignore failures to parse and treat these as "unchanged"
     # linting will flag these independently
-    except (RecursionError, libcst.ParserSyntaxError):
-        new_data = bin_data
+    except (RecursionError, libcst.ParserSyntaxError, libcst.CSTValidationError):
+        return True
 
     if new_data == bin_data:
         if verbose:
