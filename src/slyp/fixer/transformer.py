@@ -58,12 +58,10 @@ class SlypTransformer(libcst.CSTTransformer):
             node.lpar, libcst.matchers.LeftParen()
         ):
             lpar_line = self.get_metadata(
-                libcst.metadata.PositionProvider,
-                libcst.ensure_type(node.lpar, libcst.LeftParen),
+                libcst.metadata.PositionProvider, node.lpar  # type: ignore[arg-type]
             ).start.line
             rpar_line = self.get_metadata(
-                libcst.metadata.PositionProvider,
-                libcst.ensure_type(node.rpar, libcst.RightParen),
+                libcst.metadata.PositionProvider, node.rpar  # type: ignore[arg-type]
             ).start.line
             return lpar_line == rpar_line
 
