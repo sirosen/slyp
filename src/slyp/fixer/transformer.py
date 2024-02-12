@@ -11,6 +11,11 @@ SIMPLE_WHITESPACE_NO_NEWLINE_MATCHER = libcst.matchers.SimpleWhitespace(
     value=libcst.matchers.MatchIfTrue(lambda x: "\n" not in x)
 )
 
+PARENT_NODE_REQUIRES_INNERMOST_PARENS_MATCHER = libcst.matchers.OneOf(
+    libcst.matchers.Arg(star=libcst.matchers.DoNotCare()),
+    libcst.matchers.UnaryOperation(),
+)
+
 ParenFixNodeTypes = t.Union[
     libcst.Name,
     libcst.Attribute,
@@ -47,10 +52,6 @@ class SlypTransformer(libcst.CSTTransformer):
         libcst.metadata.ParentNodeProvider,
     )
 
-    def __init__(self) -> None:
-        self.in_star_arg: int = 0
-        self.in_unary_op: int = 0
-
     def _singular_parens_are_same_line(
         self, node: libcst.With | libcst.ImportFrom
     ) -> bool:
@@ -68,6 +69,12 @@ class SlypTransformer(libcst.CSTTransformer):
         return False
 
     def _how_many_parens_same_line(self, node: PFN) -> int:
+        """
+        Determine how many parens are on the same line for a node.
+
+        Start by finding the "max offset" into the paren lists where the lpar and rpar
+        are on the same line. The range is [-1 , len(paren_list)] ; then add one.
+        """
         max_offset = -1
         for offset in range(len(node.lpar)):
             lpar_line = self.get_metadata(
@@ -85,26 +92,34 @@ class SlypTransformer(libcst.CSTTransformer):
     def modify_parenthesized_node(
         self, original_node: PFN, updated_node: PFN, *, preserve_innermost: bool = False
     ) -> PFN:
-        parent: libcst.CSTNode | None = None
-        if not preserve_innermost and self.in_star_arg > 0:
-            # check if the parent of the node is *-expansion of an arg
+        num_parens_to_unwrap: int | None = None
+        if not preserve_innermost:
+            # **optimization**
+            #
+            # if there is a parent node to check, pick up on the number of parens to
+            # unwrap first -- this saves the work of accessing the parent node when it's
+            # avoidable and we can short-circuit
+            #
+            # based on timings, accessing parent nodes seems slower than finding paren
+            # linenos
+            num_parens_to_unwrap = self._how_many_parens_same_line(original_node)
+            if num_parens_to_unwrap <= 0:
+                return updated_node
+
             parent = self.get_metadata(
                 libcst.metadata.ParentNodeProvider, original_node
             )
-            if isinstance(parent, libcst.Arg) and bool(parent.star):
-                preserve_innermost = True
-        if not preserve_innermost and self.in_unary_op > 0:
-            if parent is None:
-                parent = self.get_metadata(
-                    libcst.metadata.ParentNodeProvider, original_node
-                )
-            if isinstance(parent, libcst.UnaryOperation):
+            # check if the parent of the node is *-expansion of an arg
+            if libcst.matchers.matches(
+                parent, PARENT_NODE_REQUIRES_INNERMOST_PARENS_MATCHER
+            ):
                 preserve_innermost = True
 
         if preserve_innermost and len(original_node.lpar) == 1:
             return updated_node
 
-        num_parens_to_unwrap = self._how_many_parens_same_line(original_node)
+        if num_parens_to_unwrap is None:
+            num_parens_to_unwrap = self._how_many_parens_same_line(original_node)
         if preserve_innermost:
             num_parens_to_unwrap -= 1
         if num_parens_to_unwrap <= 0:
@@ -113,17 +128,6 @@ class SlypTransformer(libcst.CSTTransformer):
             lpar=updated_node.lpar[:-num_parens_to_unwrap],
             rpar=updated_node.rpar[num_parens_to_unwrap:],
         )
-
-    def visit_Arg(self, node: libcst.Arg) -> None:
-        if node.star:
-            self.in_star_arg += 1
-
-    def leave_Arg(
-        self, original_node: libcst.Arg, updated_node: libcst.Arg
-    ) -> libcst.Arg:
-        if original_node.star:
-            self.in_star_arg -= 1
-        return updated_node
 
     # identifiers, attributes, lookups, and calls
 
@@ -214,13 +218,9 @@ class SlypTransformer(libcst.CSTTransformer):
 
     # operators
 
-    def visit_UnaryOperation(self, node: libcst.UnaryOperation) -> None:
-        self.in_unary_op += 1
-
     def leave_UnaryOperation(
         self, original_node: libcst.UnaryOperation, updated_node: libcst.UnaryOperation
     ) -> libcst.UnaryOperation:
-        self.in_unary_op -= 1
         # parens define precedence
         if len(original_node.lpar) < 2:
             return updated_node
