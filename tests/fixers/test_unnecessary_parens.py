@@ -53,7 +53,7 @@ def test_fix_unnecessary_many_paren_string(fix_text):
 def test_paren_fixer_preserves_innermost_under_splatarg(fix_text, layers):
     new_text = fix_text(
         f"""\
-        foo(*{'('*layers}"a b c".split(){')'*layers})
+        foo(*{'(' * layers}"a b c".split(){')' * layers})
         """,
         expect_changes=layers > 1,
     )
