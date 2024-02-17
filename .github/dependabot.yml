@@ -1,0 +1,11 @@
+version: 2
+# check for python package and github-actions updates weekly
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

@@ -5,19 +5,19 @@ repos:
     - id: check-merge-conflict
     - id: trailing-whitespace
 - repo: https://github.com/psf/black
-  rev: 23.9.1
+  rev: 24.2.0
   hooks:
     - id: black
 - repo: https://github.com/PyCQA/flake8
-  rev: 6.1.0
+  rev: 7.0.0
   hooks:
     - id: flake8
       additional_dependencies:
-        - 'flake8-bugbear==23.9.16'
+        - 'flake8-bugbear==24.2.6'
         - 'flake8-comprehensions==3.14.0'
         - 'flake8-typing-as-t==0.0.3'
 - repo: https://github.com/PyCQA/isort
-  rev: 5.12.0
+  rev: 5.13.2
   hooks:
     - id: isort
 - repo: https://github.com/asottile/pyupgrade
@@ -26,7 +26,7 @@ repos:
     - id: pyupgrade
       args: ["--py38-plus"]
 - repo: https://github.com/python-jsonschema/check-jsonschema
-  rev: 0.27.0
+  rev: 0.28.0
   hooks:
     - id: check-dependabot
     - id: check-github-workflows
