@@ -1,6 +1,8 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+# 0.4.0
+
 - Various performance improvements, especially for fixing
 - `slyp` will now cache results for files which pass all checks in
   `.slyp_cache`, thus avoiding rechecking files which pass and have
