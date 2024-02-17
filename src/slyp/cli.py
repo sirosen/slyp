@@ -9,7 +9,6 @@ import stat
 import subprocess
 import sys
 import textwrap
-import time
 import typing as t
 
 from slyp.checkers import check_file
@@ -36,8 +35,6 @@ def main() -> None:
         default=0,
         dest="verbosity",
     )
-    # hidden option for quick-and-dirty profiling
-    parser.add_argument("--debug-timings", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument(
         "--use-git-ls", action="store_true", help="find python files from git-ls-files"
     )
@@ -77,7 +74,6 @@ def main() -> None:
         disabled_codes = disabled_codes | DEFAULT_DISABLED_CODES
 
     success = True
-    timings = {}
     if not args.no_cache:
         passing_cache: PassingFileCache | None = PassingFileCache(
             contract_version="1.1",
@@ -97,9 +93,7 @@ def main() -> None:
         else:
             hashed_file = None
 
-        start = time.time()
         this_file_success = fix_file(filename, verbose=bool(args.verbosity))
-        after_fix = time.time()
         this_file_success = (
             check_file(
                 filename,
@@ -109,18 +103,10 @@ def main() -> None:
             )
             and this_file_success
         )
-        after_check = time.time()
-        timings[filename] = {
-            "fix": after_fix - start,
-            "check": after_check - after_fix,
-        }
         success = this_file_success and success
 
         if passing_cache and hashed_file and this_file_success:
             passing_cache.add(hashed_file)
-
-    if args.debug_timings:
-        print(json.dumps(timings, indent=2, separators=(",", ": ")))
 
     if not success:
         sys.exit(1)
