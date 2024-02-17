@@ -1,6 +1,18 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+- Various performance improvements, especially for fixing
+- `slyp` will now cache results for files which pass all checks in
+  `.slyp_cache`, thus avoiding rechecking files which pass and have
+  not changed
+
+  - this behavior can be disabled with `--no-cache`
+  - the cache is maintained independently for each possible set of
+    `--enable/--disable` options passed to `slyp`
+  - projects which fully pass `slyp` checking should experience the greatest
+    improvement -- as great as 50x faster on sizable production codebases with
+    a populated cache
+
 # 0.3.0
 
 - Fix the handling of parenthesized lambdas in the fixer. The innermost

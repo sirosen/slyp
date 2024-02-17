@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import glob
+import hashlib
 import json
 import os
 import stat
@@ -13,6 +14,7 @@ import typing as t
 
 from slyp.checkers import check_file
 from slyp.codes import CODE_MAP
+from slyp.file_cache import HashedFile, PassingFileCache
 from slyp.fixer import fix_file
 
 DEFAULT_DISABLED_CODES: set[str] = {"W201", "W202", "W203"}
@@ -27,7 +29,12 @@ def main() -> None:
         "--list", action="store_true", help="list all error and warning codes"
     )
     parser.add_argument(
-        "-v", "--verbose", action="store_true", help="increase output verbosity"
+        "-v",
+        "--verbose",
+        action="count",
+        help="increase output verbosity",
+        default=0,
+        dest="verbosity",
     )
     # hidden option for quick-and-dirty profiling
     parser.add_argument("--debug-timings", action="store_true", help=argparse.SUPPRESS)
@@ -46,6 +53,11 @@ def main() -> None:
             "(comma delimited, overrides --disable)"
         ),
         default="",
+    )
+    parser.add_argument(
+        "--no-cache",
+        help="Disable caching of results in the '.slyp_cache' directory.",
+        action="store_true",
     )
     parser.add_argument("files", nargs="*", help="default: all python files")
     args = parser.parse_args()
@@ -66,31 +78,56 @@ def main() -> None:
 
     success = True
     timings = {}
+    if not args.no_cache:
+        passing_cache: PassingFileCache | None = PassingFileCache(
+            config_id=compute_config_id(enabled_codes, disabled_codes)
+        )
+    else:
+        passing_cache = None
+
     for filename in all_py_filenames(args.files, args.use_git_ls):
+        hashed_file: HashedFile | None
+        if passing_cache:
+            hashed_file = HashedFile(filename)
+            if hashed_file in passing_cache:
+                if args.verbosity > 1:
+                    print(f"cache hit: {filename}")
+                continue
+        else:
+            hashed_file = None
+
         start = time.time()
-        success = fix_file(filename, verbose=args.verbose) and success
+        this_file_success = fix_file(filename, verbose=bool(args.verbosity)) and success
         after_fix = time.time()
-        success = (
+        this_file_success = (
             check_file(
                 filename,
-                verbose=args.verbose,
+                verbose=bool(args.verbosity),
                 disabled_codes=disabled_codes,
                 enabled_codes=enabled_codes,
             )
-            and success
+            and this_file_success
         )
         after_check = time.time()
         timings[filename] = {
             "fix": after_fix - start,
             "check": after_check - after_fix,
         }
+        success = this_file_success and success
+
+        if passing_cache and hashed_file:
+            if this_file_success:
+                passing_cache.add(hashed_file)
+            else:
+                del passing_cache[hashed_file]
+
     if args.debug_timings:
         print(json.dumps(timings, indent=2, separators=(",", ": ")))
 
     if not success:
         sys.exit(1)
 
-    if args.verbose:
+    if args.verbosity:
         print("ok")
 
 
@@ -154,3 +191,27 @@ def list_codes() -> None:
             description = code.message
         print(f"{code.code}: {description}")
         print(textwrap.indent(code.example, "    "))
+
+
+def compute_config_id(enabled_codes: set[str], disabled_codes: set[str]) -> str:
+    # this is the base config ID for caching
+    # it should be updated if fixers are changed or linters are modified
+    # in order to ensure that we bust the cache when we ship new rules
+    base = "_v1_"
+
+    # now we get the codes which are defined, convert to a string
+    all_codes: str = json.dumps(sorted(CODE_MAP.keys()))
+    # get the enabled/disabled codes, and make that a string
+    code_opts = json.dumps(
+        {
+            "disabled": sorted(enabled_codes),
+            "enabled": sorted(disabled_codes),
+        }
+    )
+
+    config_hash = hashlib.sha256()
+    config_hash.update(all_codes.encode())
+    config_hash.update(code_opts.encode())
+
+    # full ID is the base + the computed bits hashed
+    return base + config_hash.hexdigest()
