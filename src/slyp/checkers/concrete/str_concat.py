@@ -24,28 +24,6 @@ SIMPLE_WHITESPACE_NO_NEWLINE_MATCHER = libcst.matchers.SimpleWhitespace(
     value=libcst.matchers.MatchIfTrue(lambda x: "\n" not in x)
 )
 
-# check for 'unparenthesized multiline string concat in keyword arg'
-# inside of function call sites
-#
-# the scenario here is that the string concat happens across multiple
-# lines, but without parenthesization
-# with a keyword argument getting the value, this is valid but results
-# in a string with different physical indentation levels in the file
-# e.g.
-#   foo(
-#       bar="alpha "
-#       "beta"
-#   )
-#
-# a classic case where this arises naturally is `help=...` for
-# argparse and click, where the help string is often slightly too long
-# for a single line, and easy to "break in two" without adding parens to
-# force the whole block to indent
-W101_KWARG_MATCHER = libcst.matchers.Arg(
-    keyword=libcst.matchers.Name(),
-    value=UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER,
-)
-
 # check for 'unparenthesized multiline string concat in container'
 #
 # this case is multiline str concat inside of a container type, containing other
@@ -102,14 +80,6 @@ class StrConcatErrorCollector(ErrorCollectingVisitor):
         ):
             lpos = self.get_metadata(libcst.metadata.PositionProvider, node.left).start
             self.errors.add((lpos.line, self.filename, "E100"))
-
-    def visit_Arg(self, node: libcst.Arg) -> None:
-        if libcst.matchers.matches(node, W101_KWARG_MATCHER):
-            lpos = self.get_metadata(
-                libcst.metadata.PositionProvider,
-                node.value.left,  # type: ignore[attr-defined]
-            ).start
-            self.errors.add((lpos.line, self.filename, "W101"))
 
     def visit_DictElement(self, node: libcst.DictElement) -> None:
         if libcst.matchers.matches(

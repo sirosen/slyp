@@ -42,16 +42,6 @@ ALL_CODES: list[CodeDef] = [
     # string concat
     CodeDef("E100", "unnecessary string concat", 'x = "foo " "bar"'),
     CodeDef(
-        "W101",
-        "unparenthesized multiline string concat in keyword arg",
-        """
-        foo(
-            bar="alpha "
-            "beta"
-        )
-        """,
-    ),
-    CodeDef(
         "W102",
         "unparenthesized multiline string concat in dict value",
         """

@@ -66,23 +66,6 @@ x = "foo" "bar"
     assert "foo.py:1: unnecessary string concat (E100)" in capsys.readouterr().out
 
 
-def test_check_captures_w101(tmpdir, capsys):
-    os.chdir(tmpdir)
-    tmpdir.join("foo.py").write(
-        """\
-foo(x="foo"
-"bar")
-"""
-    )
-    res = check_file("foo.py", verbose=False, disabled_codes=set(), enabled_codes=set())
-    assert res is False
-
-    assert (
-        "foo.py:1: unparenthesized multiline string concat in keyword arg (W101)"
-        in capsys.readouterr().out
-    )
-
-
 def test_check_captures_w102(tmpdir, capsys):
     os.chdir(tmpdir)
     tmpdir.join("foo.py").write(

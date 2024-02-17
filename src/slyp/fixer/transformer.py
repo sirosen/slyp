@@ -11,8 +11,22 @@ SIMPLE_WHITESPACE_NO_NEWLINE_MATCHER = libcst.matchers.SimpleWhitespace(
     value=libcst.matchers.MatchIfTrue(lambda x: "\n" not in x)
 )
 
+# define a concatenated string over multiple lines, with no parens wrapping it
+UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER = libcst.matchers.ConcatenatedString(  # noqa: E501
+    whitespace_between=(
+        libcst.matchers.SimpleWhitespace(
+            value=libcst.matchers.MatchIfTrue(lambda x: "\n" in x)
+        )
+        | libcst.matchers.ParenthesizedWhitespace()
+    ),
+    # empty list means that there are no parens
+    # because `lpar` and `rpar` are `Sequence[Paren]` types
+    lpar=[],
+    rpar=[],
+)
+
 PARENT_NODE_REQUIRES_INNERMOST_PARENS_MATCHER = libcst.matchers.OneOf(
-    libcst.matchers.Arg(star=libcst.matchers.DoNotCare()),
+    libcst.matchers.Arg(star=libcst.matchers.MatchIfTrue(lambda x: "*" in x)),
     libcst.matchers.UnaryOperation(),
 )
 
@@ -158,6 +172,65 @@ class SlypTransformer(libcst.CSTTransformer):
         if not original_node.lpar:
             return updated_node
         return self.modify_parenthesized_node(original_node, updated_node)
+
+    def leave_Arg(
+        self, original_node: libcst.Arg, updated_node: libcst.Arg
+    ) -> libcst.Arg:
+        # the scenario here is that the string concat happens across multiple
+        # lines, but without parenthesization
+        # with a keyword argument getting the value, this is valid but results
+        # in a string with different physical indentation levels in the file
+        # e.g.
+        #   foo(
+        #       bar="alpha "
+        #       "beta"
+        #   )
+        #
+        # a classic case where this arises naturally is `help=...` for
+        # argparse and click, where the help string is often slightly too long
+        # for a single line, and easy to "break in two" without adding parens to
+        # force the whole block to indent
+        if libcst.matchers.matches(
+            original_node,
+            libcst.matchers.Arg(
+                keyword=libcst.matchers.Name(),
+                value=UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER,
+            ),
+        ):
+            # build a list of concatenated string nodes (unroll the recursive structure)
+            # including the final non-ConcatenatedString node
+            concat_nodes: list[libcst.BaseString] = []
+            cur = updated_node.value
+            while isinstance(cur, libcst.ConcatenatedString):
+                concat_nodes.append(cur)
+                cur = cur.right
+            concat_nodes.append(cur)  # type: ignore[arg-type]
+
+            # walk the list in reverse, updating the whitespace between the nodes and
+            # "clipping them back together" (hence the reversal here, maintaining the
+            # right-heavy structure of the original nodes)
+            for idx in range(len(concat_nodes) - 2, -1, -1):
+                cur = concat_nodes[idx]
+                concat_nodes[idx] = cur.with_changes(
+                    whitespace_between=_make_paren_whitespace(" " * 8),
+                    right=concat_nodes[idx + 1],
+                )
+
+            return updated_node.with_changes(
+                value=concat_nodes[0].with_changes(
+                    lpar=[
+                        libcst.LeftParen(
+                            whitespace_after=_make_paren_whitespace(" " * 8)
+                        )
+                    ],
+                    rpar=[
+                        libcst.RightParen(
+                            whitespace_before=_make_paren_whitespace(" " * 4)
+                        )
+                    ],
+                )
+            )
+        return updated_node
 
     # collections
 
@@ -487,3 +560,14 @@ class SlypTransformer(libcst.CSTTransformer):
         if changes:
             return updated_node.with_changes(**changes)
         return updated_node
+
+
+def _make_paren_whitespace(last_line_spacing: str) -> libcst.ParenthesizedWhitespace:
+    return libcst.ParenthesizedWhitespace(
+        first_line=libcst.TrailingWhitespace(
+            whitespace=libcst.SimpleWhitespace(value=""),
+            newline=libcst.Newline(),
+        ),
+        indent=True,
+        last_line=libcst.SimpleWhitespace(value=last_line_spacing),
+    )

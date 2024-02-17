@@ -90,17 +90,6 @@ Some warnings are disabled by default; enable them with `--enable`.
 x = "foo " "bar"
 ```
 
-### W101
-
-'unparenthesized multiline string concat in keyword arg'
-
-```python
-foo(
-    bar="alpha "
-    "beta"
-)
-```
-
 ### W102
 
 'unparenthesized multiline string concat in dict value'

@@ -1,6 +1,9 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+- Replace the W101 lint with autofixer behavior, which will insert the
+  necessary parentheses
+
 # 0.4.1
 
 - Fix passing file caching to correctly record successes after a failure
