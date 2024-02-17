@@ -1,6 +1,10 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+- Fix passing file caching to correctly record successes after a failure
+- The cache implementation has been improved to cache by file contents rather
+  than path, allowing duplicate files to share a cache entry
+
 # 0.4.0
 
 - Various performance improvements, especially for fixing

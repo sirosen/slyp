@@ -11,21 +11,20 @@ _CACHEDIR = ".slyp_cache"
 @dataclasses.dataclass
 class HashedFile:
     filename: str
-    sha: bytes = b""
+    sha: str = ""
 
     def __post_init__(self) -> None:
         if not self.sha:
             self.sha = self._compute_sha()
 
-    def _compute_sha(self) -> bytes:
+    def _compute_sha(self) -> str:
         with open(self.filename, "rb") as fp:
-            return hashlib.sha256(fp.read()).digest()
+            return hashlib.sha256(fp.read()).hexdigest()
 
 
-def _ensure_cachedir(base_cache_dir: str, cache_subdirs: list[str]) -> None:
+def _ensure_cachedir(base_cache_dir: str, subdir: str) -> None:
     os.makedirs(base_cache_dir, exist_ok=True)
-    for subdir in cache_subdirs:
-        os.makedirs(os.path.join(base_cache_dir, subdir), exist_ok=True)
+    os.makedirs(subdir, exist_ok=True)
     gitignore_path = os.path.join(base_cache_dir, ".gitignore")
     if not os.path.exists(gitignore_path):
         with open(gitignore_path, "wb") as fp:
@@ -36,30 +35,43 @@ class PassingFileCache:
     def __init__(
         self,
         *,
+        contract_version: str,
         config_id: str,
         base_cache_dir: str = _CACHEDIR,
         cache_dir: str = "passing_files",
-    ):
-        self._cache_dir = os.path.join(base_cache_dir, cache_dir, config_id)
-        _ensure_cachedir(base_cache_dir, [cache_dir])
+    ) -> None:
+        self._cache_dir = os.path.join(
+            base_cache_dir, f"{cache_dir}_{contract_version}"
+        )
+        self._config_id = config_id
+        _ensure_cachedir(base_cache_dir, self._cache_dir)
 
     def clear(self) -> None:
-        shutil.rmtree(_CACHEDIR, ignore_errors=True)
+        shutil.rmtree(self._cache_dir, ignore_errors=True)
+
+    def _find(self, item: HashedFile) -> str:
+        return os.path.join(self._cache_dir, item.sha)
 
     def __contains__(self, item: HashedFile) -> bool:
-        cached_hashfile = os.path.join(self._cache_dir, item.filename)
-        if not os.path.exists(cached_hashfile):
+        cache_file = self._find(item)
+        if not os.path.exists(cache_file):
             return False
-        with open(cached_hashfile, "rb") as fp:
-            return fp.read() == item.sha
+        with open(cache_file) as fp:
+            data = fp.read()
+        return self._config_id in data
 
     def add(self, item: HashedFile) -> None:
-        target_file = os.path.join(self._cache_dir, item.filename)
-        os.makedirs(os.path.dirname(target_file), exist_ok=True)
-        with open(target_file, "wb") as fp:
-            fp.write(item.sha)
+        cache_file = self._find(item)
+        if not os.path.exists(cache_file):
+            data = self._config_id + "\n"
+        else:
+            with open(cache_file) as fp:
+                data = fp.read().strip()
 
-    def __delitem__(self, item: HashedFile) -> None:
-        cached_hashfile = os.path.join(self._cache_dir, item.filename)
-        if os.path.exists(cached_hashfile):
-            os.remove(cached_hashfile)
+            if self._config_id in data:  # short-circuit (already recorded)
+                return
+            else:
+                data += f"\n{self._config_id}\n"
+
+        with open(cache_file, "w") as fp:
+            fp.write(data)
