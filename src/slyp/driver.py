@@ -38,21 +38,32 @@ def driver_main(args: argparse.Namespace) -> bool:
 
     process_pool = multiprocessing.pool.Pool()
 
-    futures = []
+    futures = {}
     for filename in all_py_filenames(args.files, args.use_git_ls):
-        futures.append(
-            process_pool.apply_async(
-                process_file,
-                (filename, disabled_codes, enabled_codes, passing_cache),
-            )
+        futures[filename] = process_pool.apply_async(
+            process_file,
+            (filename, disabled_codes, enabled_codes, passing_cache),
         )
     process_pool.close()
     process_pool.join()
 
     result = Result(success=True, messages=[])
 
-    for future in futures:
-        result = result.join(future.get())
+    for filename, future in futures.items():
+        try:
+            inner_result = future.get()
+        except Exception as e:
+            inner_result = Result(
+                success=False,
+                messages=[
+                    Message(f"slyp error on '{filename}': {e}"),
+                    Message(
+                        f"slyp error on '{filename}': {e.__traceback__}",
+                        verbosity=2,
+                    ),
+                ],
+            )
+        result = result.join(inner_result)
 
     for message in sorted(result.messages):
         if message.verbosity <= args.verbosity:

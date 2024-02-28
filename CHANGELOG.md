@@ -1,6 +1,9 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+- Unexpected errors encountered when parsing files are now reported as failures, rather
+  than causing `slyp` to abort
+
 # 0.5.0
 
 - Replace the W101 lint with autofixer behavior, which will insert the
