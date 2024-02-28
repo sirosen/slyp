@@ -4,6 +4,8 @@
 - Replace the W101 lint with autofixer behavior, which will insert the
   necessary parentheses
 - Improve the way that files are handled to read only once from disk per file
+- `slyp` now processes files in parallel and produces its output at the end of
+  its run (with some simple sorting)
 
 # 0.4.1
 

@@ -13,6 +13,19 @@ def _auto_clear_checker_errors():
     _clear_checker_errors()
 
 
+@pytest.fixture(autouse=True)
+def _mock_parallel_processing():
+    def fake_apply_async(func, args):
+        mock_future = mock.Mock()
+        mock_future.get.return_value = func(*args)
+        return mock_future
+
+    mock_pool = mock.Mock()
+    mock_pool.apply_async = fake_apply_async
+    with mock.patch("multiprocessing.pool.Pool", return_value=mock_pool):
+        yield
+
+
 @pytest.fixture
 def run_cli(capsys):
     def _run_cli(args, assert_exit_code=0):

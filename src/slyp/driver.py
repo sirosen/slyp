@@ -4,6 +4,7 @@ import argparse
 import glob
 import hashlib
 import json
+import multiprocessing.pool
 import os
 import stat
 import subprocess
@@ -14,6 +15,7 @@ from slyp.codes import CODE_MAP
 from slyp.file_cache import PassingFileCache
 from slyp.fixer import fix_file
 from slyp.hashable_file import HashableFile
+from slyp.result import Message, Result
 
 DEFAULT_DISABLED_CODES: set[str] = {"W201", "W202", "W203"}
 
@@ -26,7 +28,6 @@ def driver_main(args: argparse.Namespace) -> bool:
     if "all" not in enabled_codes:
         disabled_codes = disabled_codes | DEFAULT_DISABLED_CODES
 
-    success = True
     if not args.no_cache:
         passing_cache: PassingFileCache | None = PassingFileCache(
             contract_version="1.2",
@@ -35,32 +36,57 @@ def driver_main(args: argparse.Namespace) -> bool:
     else:
         passing_cache = None
 
+    process_pool = multiprocessing.pool.Pool()
+
+    futures = []
     for filename in all_py_filenames(args.files, args.use_git_ls):
-        file_obj = HashableFile(filename)
-
-        if passing_cache:
-            if file_obj in passing_cache:
-                if args.verbosity > 1:
-                    print(f"cache hit: {filename}")
-                continue
-
-        fix_result = fix_file(file_obj)
-        for message in fix_result.messages:
-            if message.verbosity <= args.verbosity:
-                print(message.message)
-        check_result = check_file(
-            file_obj, disabled_codes=disabled_codes, enabled_codes=enabled_codes
+        futures.append(
+            process_pool.apply_async(
+                process_file,
+                (filename, disabled_codes, enabled_codes, passing_cache),
+            )
         )
-        for message in check_result.messages:
-            if message.verbosity <= args.verbosity:
-                print(message.message)
+    process_pool.close()
+    process_pool.join()
 
-        this_file_success = fix_result.success and check_result.success
-        success = this_file_success and success
+    result = Result(success=True, messages=[])
 
-        if passing_cache and this_file_success:
-            passing_cache.add(file_obj)
-    return True
+    for future in futures:
+        result = result.join(future.get())
+
+    for message in sorted(result.messages):
+        if message.verbosity <= args.verbosity:
+            print(message.message)
+
+    return result.success
+
+
+def process_file(
+    filename: str,
+    disabled_codes: set[str],
+    enabled_codes: set[str],
+    passing_cache: PassingFileCache | None,
+) -> Result:
+    result = Result(success=True, messages=[])
+    file_obj = HashableFile(filename)
+
+    if passing_cache:
+        if file_obj in passing_cache:
+            result.messages.append(
+                Message(message=f"cache hit: {filename}", verbosity=2)
+            )
+            return result
+
+    fix_result = fix_file(file_obj)
+    check_result = check_file(
+        file_obj, disabled_codes=disabled_codes, enabled_codes=enabled_codes
+    )
+
+    result = result.join(fix_result).join(check_result)
+
+    if passing_cache and result.success:
+        passing_cache.add(file_obj)
+    return result
 
 
 def compute_config_id(enabled_codes: set[str], disabled_codes: set[str]) -> str:
