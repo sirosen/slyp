@@ -1,25 +1,11 @@
 from __future__ import annotations
 
-import dataclasses
-import hashlib
 import os
 import shutil
 
+from slyp.hashable_file import HashableFile
+
 _CACHEDIR = ".slyp_cache"
-
-
-@dataclasses.dataclass
-class HashedFile:
-    filename: str
-    sha: str = ""
-
-    def __post_init__(self) -> None:
-        if not self.sha:
-            self.sha = self._compute_sha()
-
-    def _compute_sha(self) -> str:
-        with open(self.filename, "rb") as fp:
-            return hashlib.sha256(fp.read()).hexdigest()
 
 
 def _ensure_cachedir(base_cache_dir: str, subdir: str) -> None:
@@ -49,10 +35,10 @@ class PassingFileCache:
     def clear(self) -> None:
         shutil.rmtree(self._cache_dir, ignore_errors=True)
 
-    def _find(self, item: HashedFile) -> str:
+    def _find(self, item: HashableFile) -> str:
         return os.path.join(self._cache_dir, item.sha)
 
-    def __contains__(self, item: HashedFile) -> bool:
+    def __contains__(self, item: HashableFile) -> bool:
         cache_file = self._find(item)
         if not os.path.exists(cache_file):
             return False
@@ -60,7 +46,7 @@ class PassingFileCache:
             data = fp.read()
         return self._config_id in data
 
-    def add(self, item: HashedFile) -> None:
+    def add(self, item: HashableFile) -> None:
         cache_file = self._find(item)
         if not os.path.exists(cache_file):
             data = self._config_id + "\n"

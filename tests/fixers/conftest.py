@@ -3,6 +3,7 @@ import textwrap
 import pytest
 
 from slyp.fixer import fix_file
+from slyp.hashable_file import HashableFile
 
 
 @pytest.fixture
@@ -13,8 +14,9 @@ def fix_text(tmpdir):
         handle = tmpdir.join(filename)
         text = textwrap.dedent(text) if dedent else text
         handle.write(text)
+
         with tmpdir.as_cwd():
-            res = fix_file(filename, verbose=verbose)
+            res = fix_file(HashableFile(filename), verbose=verbose)
             new_text = handle.read()
 
             if expect_changes:

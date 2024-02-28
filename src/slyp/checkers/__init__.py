@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 
 from slyp.codes import CODE_MAP
+from slyp.hashable_file import HashableFile
 
 from .abstract import run_ast_checkers
 from .concrete import run_cst_checkers
@@ -11,23 +12,25 @@ _DISALBE_RE = re.compile(rb"#\s*slyp:\s*disable=(.*)")
 
 
 def check_file(
-    filename: str, *, verbose: bool, disabled_codes: set[str], enabled_codes: set[str]
-) -> bool:
+    file_obj: HashableFile,
+    *,
+    verbose: bool,
+    disabled_codes: set[str],
+    enabled_codes: set[str],
+) -> list[str]:
     if verbose:
-        print(f"checking {filename}")
-
-    with open(filename, "rb") as fp:
-        bin_data = fp.read()
+        print(f"checking {file_obj.filename}")
 
     try:
-        cst_errors = run_cst_checkers(filename, bin_data)
+        cst_errors = run_cst_checkers(file_obj)
     except RecursionError:
         cst_errors = {(0, "X002")}
 
-    ast_errors = run_ast_checkers(filename, bin_data)
+    ast_errors = run_ast_checkers(file_obj)
     errors = sorted(cst_errors | ast_errors)
 
-    lines = bin_data.splitlines()
+    lines = file_obj.binary_content.splitlines()
+
     filtered_errors = sorted(
         (lineno, code)
         for lineno, code in errors
@@ -35,11 +38,10 @@ def check_file(
         and not _exempt(lines, lineno - 1, code)
     )
 
-    if filtered_errors:
-        for lineno, code in filtered_errors:
-            print(f"{filename}:{lineno}: {CODE_MAP[code]}")
-        return False
-    return True
+    return [
+        f"{file_obj.filename}:{lineno}: {CODE_MAP[code]}"
+        for lineno, code in filtered_errors
+    ]
 
 
 def _disabled(code: str, disabled_codes: set[str], enabled_codes: set[str]) -> bool:

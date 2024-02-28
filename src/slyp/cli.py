@@ -13,8 +13,9 @@ import typing as t
 
 from slyp.checkers import check_file
 from slyp.codes import CODE_MAP
-from slyp.file_cache import HashedFile, PassingFileCache
+from slyp.file_cache import PassingFileCache
 from slyp.fixer import fix_file
+from slyp.hashable_file import HashableFile
 
 DEFAULT_DISABLED_CODES: set[str] = {"W201", "W202", "W203"}
 
@@ -83,30 +84,30 @@ def main() -> None:
         passing_cache = None
 
     for filename in all_py_filenames(args.files, args.use_git_ls):
-        hashed_file: HashedFile | None
+        file_obj = HashableFile(filename)
+
         if passing_cache:
-            hashed_file = HashedFile(filename)
-            if hashed_file in passing_cache:
+            if file_obj in passing_cache:
                 if args.verbosity > 1:
                     print(f"cache hit: {filename}")
                 continue
-        else:
-            hashed_file = None
 
-        this_file_success = fix_file(filename, verbose=bool(args.verbosity))
-        this_file_success = (
-            check_file(
-                filename,
-                verbose=bool(args.verbosity),
-                disabled_codes=disabled_codes,
-                enabled_codes=enabled_codes,
-            )
-            and this_file_success
+        this_file_success = fix_file(file_obj, verbose=bool(args.verbosity))
+
+        checker_errors = check_file(
+            file_obj,
+            verbose=bool(args.verbosity),
+            disabled_codes=disabled_codes,
+            enabled_codes=enabled_codes,
         )
+        for error_message in checker_errors:
+            print(error_message)
+
+        this_file_success = checker_errors == [] and this_file_success
         success = this_file_success and success
 
-        if passing_cache and hashed_file and this_file_success:
-            passing_cache.add(hashed_file)
+        if passing_cache and this_file_success:
+            passing_cache.add(file_obj)
 
     if not success:
         sys.exit(1)

@@ -2,30 +2,28 @@ from __future__ import annotations
 
 import libcst
 
+from slyp.hashable_file import HashableFile
+
 from .transformer import SlypTransformer
 
 
-def fix_file(filename: str, *, verbose: bool) -> bool:
+def fix_file(file_obj: HashableFile, *, verbose: bool) -> bool:
     """returns True if no changes were needed"""
-    with open(filename, "rb") as fp:
-        bin_data = fp.read()
-
     try:
-        new_data = _fix_data(bin_data)
+        new_data = _fix_data(file_obj.binary_content)
     # ignore failures to parse and treat these as "unchanged"
     # linting will flag these independently
     except (RecursionError, libcst.ParserSyntaxError, libcst.CSTValidationError):
         return True
 
-    if new_data == bin_data:
+    if new_data == file_obj.binary_content:
         if verbose:
-            print(f"slyp: no changes to {filename}")
+            print(f"slyp: no changes to {file_obj.filename}")
 
         return True
 
-    print(f"slyp: fixing {filename}")
-    with open(filename, "wb") as fp:
-        fp.write(new_data)
+    print(f"slyp: fixing {file_obj.filename}")
+    file_obj.write(new_data)
 
     return False
 

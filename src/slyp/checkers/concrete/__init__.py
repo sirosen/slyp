@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import libcst
 
+from slyp.hashable_file import HashableFile
+
 from ._base import ErrorCollectingVisitor
 from .str_concat import StrConcatErrorCollector
 
@@ -10,20 +12,20 @@ _VISITORS: list[ErrorCollectingVisitor] = [
 ]
 
 
-def run_cst_checkers(filename: str, content: bytes) -> set[tuple[int, str]]:
+def run_cst_checkers(file_obj: HashableFile) -> set[tuple[int, str]]:
     try:
-        tree = libcst.parse_module(content)
+        tree = libcst.parse_module(file_obj.binary_content)
     except (libcst.ParserSyntaxError, libcst.CSTValidationError):
         return {(0, "X001")}
     wrapper = libcst.MetadataWrapper(tree)
     for visitor in _VISITORS:
-        visitor.filename = filename
+        visitor.filename = file_obj.filename
         wrapper.visit(visitor)
     return {
         (lineno, code)
         for visitor in _VISITORS
         for (lineno, error_filename, code) in visitor.errors
-        if error_filename == filename
+        if error_filename == file_obj.filename
     }
 
 
