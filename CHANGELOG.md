@@ -1,6 +1,8 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+# 0.5.0
+
 - Replace the W101 lint with autofixer behavior, which will insert the
   necessary parentheses
 - Improve the way that files are handled to read only once from disk per file
