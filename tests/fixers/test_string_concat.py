@@ -4,7 +4,7 @@ import pytest
 
 
 def test_simple_string_concat_with_matching_characteristics(fix_text):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         a = "foo " "bar"
         b = 'foo ' 'bar'
@@ -61,7 +61,7 @@ def test_prefix_mismatch_suppresses_fixing(fix_text, prefix_a, prefix_b):
 
 
 def test_prefix_mismatch_is_ignored_in_special_cases(fix_text):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         a = br"foo " rb"bar"
         b = rb"foo " br"bar"
@@ -76,7 +76,7 @@ def test_prefix_mismatch_is_ignored_in_special_cases(fix_text):
 
 
 def test_double_concat(fix_text):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         x = "foo " "bar " "baz"
         """,

@@ -4,6 +4,7 @@ import re
 
 from slyp.codes import CODE_MAP
 from slyp.hashable_file import HashableFile
+from slyp.result import Message, Result
 
 from .abstract import run_ast_checkers
 from .concrete import run_cst_checkers
@@ -14,12 +15,10 @@ _DISALBE_RE = re.compile(rb"#\s*slyp:\s*disable=(.*)")
 def check_file(
     file_obj: HashableFile,
     *,
-    verbose: bool,
     disabled_codes: set[str],
     enabled_codes: set[str],
-) -> list[str]:
-    if verbose:
-        print(f"checking {file_obj.filename}")
+) -> Result:
+    messages: list[Message] = [Message(f"checking {file_obj.filename}", verbosity=1)]
 
     try:
         cst_errors = run_cst_checkers(file_obj)
@@ -38,10 +37,13 @@ def check_file(
         and not _exempt(lines, lineno - 1, code)
     )
 
-    return [
-        f"{file_obj.filename}:{lineno}: {CODE_MAP[code]}"
-        for lineno, code in filtered_errors
-    ]
+    for lineno, code in filtered_errors:
+        messages.append(Message(f"{file_obj.filename}:{lineno}: {CODE_MAP[code]}"))
+
+    if filtered_errors:
+        return Result(messages=messages, success=False)
+    else:
+        return Result(messages=messages, success=True)
 
 
 def _disabled(code: str, disabled_codes: set[str], enabled_codes: set[str]) -> bool:

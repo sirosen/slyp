@@ -3,11 +3,12 @@ from __future__ import annotations
 import libcst
 
 from slyp.hashable_file import HashableFile
+from slyp.result import Message, Result
 
 from .transformer import SlypTransformer
 
 
-def fix_file(file_obj: HashableFile, *, verbose: bool) -> bool:
+def fix_file(file_obj: HashableFile) -> Result:
     """returns True if no changes were needed"""
     try:
         new_data = _fix_data(file_obj.binary_content)
@@ -17,15 +18,16 @@ def fix_file(file_obj: HashableFile, *, verbose: bool) -> bool:
         return True
 
     if new_data == file_obj.binary_content:
-        if verbose:
-            print(f"slyp: no changes to {file_obj.filename}")
+        return Result(
+            messages=[Message(f"slyp: no changes to {file_obj.filename}", verbosity=1)],
+            success=True,
+        )
 
-        return True
-
-    print(f"slyp: fixing {file_obj.filename}")
     file_obj.write(new_data)
-
-    return False
+    return Result(
+        messages=[Message(f"slyp: fixed {file_obj.filename}")],
+        success=False,
+    )
 
 
 def _fix_data(content: bytes) -> bytes:

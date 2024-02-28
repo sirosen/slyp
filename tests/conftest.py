@@ -13,7 +13,6 @@ def check_text(tmpdir):
     def _check_text(
         text,
         *,
-        verbose=False,
         disabled_codes=None,
         enabled_codes=None,
         dedent=True,
@@ -26,7 +25,6 @@ def check_text(tmpdir):
         with tmpdir.as_cwd():
             return check_file(
                 HashableFile(filename),
-                verbose=verbose,
                 disabled_codes=disabled_codes or set(),
                 enabled_codes=enabled_codes or set(),
             )

@@ -1,10 +1,10 @@
 import textwrap
 
 
-def test_fixer_inserts_missing_parens_call_arg(capsys, fix_text):
+def test_fixer_inserts_missing_parens_call_arg(fix_text):
     # awkward looking but simple case for paren insertion fixer
     # (black will fix this)
-    new_text = fix_text(
+    new_text, _ = fix_text(
         textwrap.dedent(
             """\
             foo(x="foo"
@@ -23,10 +23,10 @@ def test_fixer_inserts_missing_parens_call_arg(capsys, fix_text):
     )
 
 
-def test_fixer_inserts_missing_parens_call_arg_in_list(capsys, fix_text):
+def test_fixer_inserts_missing_parens_call_arg_in_list(fix_text):
     # normal case for paren insertion fixer, in an arg list
     # black fixing will be a no-op because we already handle indents nicely for this
-    new_text = fix_text(
+    new_text, _ = fix_text(
         textwrap.dedent(
             """\
             foo(

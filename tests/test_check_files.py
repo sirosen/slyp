@@ -36,7 +36,7 @@ def test_check_passes_on_example_file(check_text):
         }
         """
     )
-    assert res == []
+    assert res.success
 
 
 def test_check_captures_e100(check_text):
@@ -46,7 +46,8 @@ def test_check_captures_e100(check_text):
         """,
         filename="foo.py",
     )
-    assert res == ["foo.py:1: unnecessary string concat (E100)"]
+    assert not res.success
+    assert "foo.py:1: unnecessary string concat (E100)" in res.message_strings
 
 
 def test_check_captures_w102(check_text):
@@ -59,9 +60,11 @@ def test_check_captures_w102(check_text):
         """,
         filename="foo.py",
     )
-    assert res == [
+    assert not res.success
+    assert (
         "foo.py:2: unparenthesized multiline string concat in dict value (W102)"
-    ]
+        in res.message_strings
+    )
 
 
 def test_check_captures_w103(check_text):
@@ -75,10 +78,11 @@ def test_check_captures_w103(check_text):
         """,
         filename="foo.py",
     )
-
-    assert res == [
+    assert not res.success
+    assert (
         "foo.py:3: unparenthesized multiline string concat in collection type (W103)"
-    ]
+        in res.message_strings
+    )
 
 
 def test_check_w103_ignores_solo_strings(check_text):
@@ -90,7 +94,7 @@ def test_check_w103_ignores_solo_strings(check_text):
         ]
         """
     )
-    assert res == []
+    assert res.success
 
 
 def test_check_captures_w200(check_text):
@@ -105,7 +109,11 @@ def test_check_captures_w200(check_text):
         filename="foo.py",
     )
 
-    assert res == ["foo.py:2: two AST branches have identical contents (W200)"]
+    assert not res.success
+    assert (
+        "foo.py:2: two AST branches have identical contents (W200)"
+        in res.message_strings
+    )
 
 
 def test_check_captures_w201(check_text):
@@ -120,7 +128,11 @@ def test_check_captures_w201(check_text):
         filename="foo.py",
     )
 
-    assert res == ["foo.py:2: two AST branches have identical trivial contents (W201)"]
+    assert not res.success
+    assert (
+        "foo.py:2: two AST branches have identical trivial contents (W201)"
+        in res.message_strings
+    )
 
 
 def test_check_captures_w202(check_text):
@@ -137,9 +149,11 @@ def test_check_captures_w202(check_text):
         filename="foo.py",
     )
 
-    assert res == [
+    assert not res.success
+    assert (
         "foo.py:2: two non-adjacent AST branches have identical contents (W202)"
-    ]
+        in res.message_strings
+    )
 
 
 def test_check_captures_w203(check_text):
@@ -156,9 +170,11 @@ def test_check_captures_w203(check_text):
         filename="foo.py",
     )
 
-    assert res == [
+    assert not res.success
+    assert (
         "foo.py:2: two non-adjacent AST branches have identical trivial contents (W203)"
-    ]
+        in res.message_strings
+    )
 
 
 def test_can_disable_code_with_comment(check_text):
@@ -169,7 +185,7 @@ def test_can_disable_code_with_comment(check_text):
         """,
         filename="foo.py",
     )
-    assert res == []
+    assert res.success
 
 
 def test_can_disable_code_via_category_disable(check_text):
@@ -186,7 +202,7 @@ def test_can_disable_code_via_category_disable(check_text):
         filename="foo.py",
         disabled_codes={"W"},
     )
-    assert res == []
+    assert res.success
 
 
 def test_check_captures_e110(check_text):
@@ -198,7 +214,8 @@ def test_check_captures_e110(check_text):
         filename="foo.py",
     )
 
-    assert res == [
+    assert not res.success
+    assert (
         "foo.py:1: returning a variable checked as None, "
         "rather than returning None (E110)"
-    ]
+    ) in res.message_strings

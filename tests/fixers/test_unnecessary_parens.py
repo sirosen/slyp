@@ -3,14 +3,13 @@ import textwrap
 import pytest
 
 
-def test_paren_fixer_no_op(capsys, fix_text):
-    fix_text(
+def test_paren_fixer_no_op(fix_text):
+    _, res = fix_text(
         "x = 1\n",
         expect_changes=False,
-        verbose=True,
         filename="foo.py",
     )
-    assert "slyp: no changes to foo.py" in capsys.readouterr().out
+    assert "slyp: no changes to foo.py" in res.message_strings
 
 
 def test_paren_fixer_is_no_op_on_needed_parens(fix_text):
@@ -33,25 +32,24 @@ def test_paren_fixer_is_no_op_on_needed_parens(fix_text):
     )
 
 
-def test_fix_unnecessary_double_paren_tuple(capsys, fix_text):
-    new_text = fix_text(
+def test_fix_unnecessary_double_paren_tuple(fix_text):
+    new_text, res = fix_text(
         "a = ((1, 2))\n",
-        verbose=True,
         filename="foo.py",
     )
 
-    assert "slyp: fixing foo.py" in capsys.readouterr().out
+    assert "slyp: fixed foo.py" in res.message_strings
     assert new_text == "a = (1, 2)\n"
 
 
 def test_fix_unnecessary_many_paren_string(fix_text):
-    new_text = fix_text('a = ((((((("foo")))))))\n')
+    new_text, _ = fix_text('a = ((((((("foo")))))))\n')
     assert new_text == 'a = "foo"\n'
 
 
 @pytest.mark.parametrize("layers", (1, 2))
 def test_paren_fixer_preserves_innermost_under_splatarg(fix_text, layers):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         f"""\
         foo(*{'(' * layers}"a b c".split(){')' * layers})
         """,
@@ -74,7 +72,7 @@ def test_multiline_always_allowed(fix_text):
 
 
 def test_names_attributes_and_indexing(fix_text):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         a = (x)
         b = (x.y)
@@ -97,7 +95,7 @@ def test_names_attributes_and_indexing(fix_text):
 
 
 def test_collection_types(fix_text):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         a = {1: 2}
         b = ({2: 3})
@@ -132,7 +130,7 @@ def test_collection_types(fix_text):
 
 
 def test_operators_and_numerics(fix_text):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         a = ((1 + 2)) * (3.2)
         b = ((~ (1 - 2))) * 3 - 2.2
@@ -153,7 +151,7 @@ def test_operators_and_numerics(fix_text):
 
 
 def test_ellipsis(fix_text):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         a = ((...))
         b = ...
@@ -164,7 +162,7 @@ def test_ellipsis(fix_text):
 
 def test_string_styles(fix_text):
     # note that the ConcatenatedString node will also be fixed to a single string
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         x = "foo"
         a = ("foo")
@@ -183,7 +181,7 @@ def test_string_styles(fix_text):
 
 
 def test_lambdas_and_yields_with_many_parens(fix_text):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         a = ((lambda: 1))
         b = (lambda: ((1)))
@@ -212,7 +210,7 @@ def test_lambdas_and_yields_with_many_parens(fix_text):
 
 
 def test_generator_expressions(fix_text):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         a = list(x for x in foo())
         b = foo((x for x in bar()), baz())
@@ -229,7 +227,7 @@ def test_generator_expressions(fix_text):
 
 
 def test_if_expressions(fix_text):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         a = (1 if x else 2) | 3
         b = 1 if x else 2 & a
@@ -246,7 +244,7 @@ def test_if_expressions(fix_text):
 
 
 def test_await_safe_use_for_precedence(fix_text):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         a = (await foo() if x else bar())["baz"]
         b = ((await foo() if x else bar()))
@@ -261,7 +259,7 @@ def test_await_safe_use_for_precedence(fix_text):
 
 
 def test_match_with_paren_gets_space_inserted(fix_text):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         match(x):
             case (1, 2):
@@ -282,7 +280,7 @@ def test_match_with_paren_gets_space_inserted(fix_text):
 
 
 def test_with_with_paren_gets_space_inserted(fix_text):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         with(x()):
             pass
@@ -297,7 +295,7 @@ def test_with_with_paren_gets_space_inserted(fix_text):
 
 
 def test_if_with_paren_gets_space_inserted(fix_text):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         if(x()):
             pass
@@ -312,7 +310,7 @@ def test_if_with_paren_gets_space_inserted(fix_text):
 
 
 def test_import_from_gets_space_inserted(fix_text):
-    new_text = fix_text(
+    new_text, _ = fix_text(
         """\
         from foo import(bar, baz)
         """
