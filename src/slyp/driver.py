@@ -30,7 +30,7 @@ def driver_main(args: argparse.Namespace) -> bool:
 
     if not args.no_cache:
         passing_cache: PassingFileCache | None = PassingFileCache(
-            contract_version="1.2",
+            contract_version="1.3",
             config_id=compute_config_id(enabled_codes, disabled_codes),
         )
     else:

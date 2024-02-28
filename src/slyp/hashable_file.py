@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import dataclasses
-import functools
 import hashlib
 
 
@@ -9,11 +8,14 @@ import hashlib
 class HashableFile:
     filename: str
     _sha: str | None = None
+    _binary_content: bytes | None = None
 
-    @functools.cached_property
+    @property
     def binary_content(self) -> bytes:
-        with open(self.filename, "rb") as fp:
-            return fp.read()
+        if self._binary_content is None:
+            with open(self.filename, "rb") as fp:
+                self._binary_content = fp.read()
+        return self._binary_content
 
     @property
     def sha(self) -> str:
@@ -24,4 +26,6 @@ class HashableFile:
     def write(self, content: bytes) -> None:
         with open(self.filename, "wb") as fp:
             fp.write(content)
+
         self._sha = None
+        self._binary_content = content

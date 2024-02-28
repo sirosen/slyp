@@ -7,11 +7,9 @@ from slyp.hashable_file import HashableFile
 
 from ._base import ErrorRecordingVisitor
 from .matching_branches import FindEquivalentBranchesVisitor
-from .none_checked_var_returned import NoneCheckedVarReturnVisitor
 
 _VISITORS: t.Sequence[ErrorRecordingVisitor] = [
     FindEquivalentBranchesVisitor(),
-    NoneCheckedVarReturnVisitor(),
 ]
 
 

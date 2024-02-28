@@ -542,11 +542,97 @@ class SlypTransformer(libcst.CSTTransformer):
     def leave_If(self, original_node: libcst.If, updated_node: libcst.If) -> libcst.If:
         # inject whitespace if missing
         # ensures that `if(x): ...` converts to `if x: ...`
-        if not original_node.whitespace_before_test.empty:
-            return updated_node
-        return updated_node.with_changes(
-            whitespace_before_test=libcst.SimpleWhitespace(" ")
-        )
+        if original_node.whitespace_before_test.empty:
+            updated_node = updated_node.with_changes(
+                whitespace_before_test=libcst.SimpleWhitespace(" ")
+            )
+
+        # convert any return of a variable after None checking to return None instead
+        # i.e. `if x is None: return x` -> `if x is None: return None`
+        if libcst.matchers.matches(
+            original_node.test,
+            libcst.matchers.Comparison(
+                left=libcst.matchers.Name(),
+                comparisons=[
+                    libcst.matchers.ComparisonTarget(
+                        operator=libcst.matchers.Is(),
+                        comparator=libcst.matchers.Name("None"),
+                    )
+                ],
+            ),
+        ):
+            var_name = original_node.test.left.value  # type: ignore[attr-defined]
+
+            # if this is an indented block returning `$var_name`
+            # swap it for an indented block returning `None`
+            if libcst.matchers.matches(
+                original_node.body,
+                libcst.matchers.IndentedBlock(
+                    body=[
+                        libcst.matchers.SimpleStatementLine(
+                            body=[
+                                libcst.matchers.Return(
+                                    value=libcst.matchers.Name(var_name),
+                                )
+                            ]
+                        )
+                    ]
+                ),
+            ):
+                return_node = updated_node.body.body[0].body[0]  # type: ignore[union-attr]  # noqa: E501
+                updated_return_node = return_node.with_changes(
+                    value=libcst.Name("None")
+                )
+                updated_node = updated_node.with_changes(
+                    body=updated_node.body.with_changes(
+                        body=[
+                            updated_node.body.body[0].with_changes(
+                                body=[
+                                    updated_return_node,
+                                ]
+                            )
+                        ]
+                    )
+                )
+            # if this is a statement (inline) returning `$var_name`
+            # swap it for an statement returning `None`
+            # also turn it into an indented block
+            elif libcst.matchers.matches(
+                original_node.body,
+                libcst.matchers.SimpleStatementSuite(
+                    body=[
+                        libcst.matchers.Return(
+                            value=libcst.matchers.Name(var_name),
+                        )
+                    ]
+                ),
+            ):
+                trailing_comment = original_node.body.trailing_whitespace.comment  # type: ignore[attr-defined]  # noqa: E501
+                updated_node = updated_node.with_changes(
+                    body=libcst.IndentedBlock(
+                        body=[
+                            libcst.SimpleStatementLine(
+                                body=[
+                                    libcst.Return(
+                                        value=libcst.Name("None"),
+                                    )
+                                ]
+                            )
+                        ],
+                        header=(
+                            libcst.TrailingWhitespace(
+                                whitespace=(
+                                    libcst.SimpleWhitespace("  ")
+                                    if trailing_comment
+                                    else libcst.SimpleWhitespace("")
+                                ),
+                                comment=trailing_comment,
+                            )
+                        ),
+                    )
+                )
+
+        return updated_node
 
     def leave_ImportFrom(
         self, original_node: libcst.ImportFrom, updated_node: libcst.ImportFrom

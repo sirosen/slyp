@@ -3,6 +3,8 @@
 
 - Unexpected errors encountered when parsing files are now reported as failures, rather
   than causing `slyp` to abort
+- Replace E110 with a autofixer behavior, which rewrites the return of a known-`None`
+  variable immediately after testing it to return `None` instead
 
 # 0.5.0
 

@@ -203,19 +203,3 @@ def test_can_disable_code_via_category_disable(check_text):
         disabled_codes={"W"},
     )
     assert res.success
-
-
-def test_check_captures_e110(check_text):
-    res = check_text(
-        """\
-        if foo is None:
-            return foo
-        """,
-        filename="foo.py",
-    )
-
-    assert not res.success
-    assert (
-        "foo.py:1: returning a variable checked as None, "
-        "rather than returning None (E110)"
-    ) in res.message_strings
