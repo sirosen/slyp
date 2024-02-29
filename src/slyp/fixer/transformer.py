@@ -12,6 +12,7 @@ SIMPLE_WHITESPACE_NO_NEWLINE_MATCHER = libcst.matchers.SimpleWhitespace(
 )
 
 # define a concatenated string over multiple lines, with no parens wrapping it
+# restrict this to only match when there is no comment between the lines
 UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER = libcst.matchers.ConcatenatedString(  # noqa: E501
     whitespace_between=(
         libcst.matchers.SimpleWhitespace(
@@ -23,6 +24,46 @@ UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER = libcst.matchers.Concaten
     # because `lpar` and `rpar` are `Sequence[Paren]` types
     lpar=[],
     rpar=[],
+)
+
+# check for 'unparenthesized multiline string concat in container'
+#
+# this case is multiline str concat inside of a container type, containing other
+# elements
+#
+# the main scenario is "accidental multiline string", where a collection contains
+# string literals, but is missing one comma
+#
+#   x = [
+#       "foo "
+#       "bar",
+#       "baz",
+#   ]
+#
+# however, a similar argument applies to any mixed iterable, e.g.
+#
+#   x = (
+#       "foo "
+#       "bar",
+#       baz(),
+#   ]
+UNPARENTHESIZED_CONCAT_ELEMENT_MATCHER = libcst.matchers.Element(
+    value=UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER
+)
+
+# this allows us to do faster matching for W103 by checking the whole list with
+# a single matcher conditional
+UNPARENTHESIZED_CONCAT_IN_ELEMENT_LIST_MATCHER = libcst.matchers.OneOf(
+    [
+        libcst.matchers.AtLeastN(n=1),
+        UNPARENTHESIZED_CONCAT_ELEMENT_MATCHER,
+        libcst.matchers.ZeroOrMore(),
+    ],
+    [
+        libcst.matchers.ZeroOrMore(),
+        UNPARENTHESIZED_CONCAT_ELEMENT_MATCHER,
+        libcst.matchers.AtLeastN(n=1),
+    ],
 )
 
 PARENT_NODE_REQUIRES_INNERMOST_PARENS_MATCHER = libcst.matchers.OneOf(
@@ -58,6 +99,11 @@ ParenFixNodeTypes = t.Union[
     libcst.Await,
 ]
 PFN = t.TypeVar("PFN", bound=ParenFixNodeTypes)
+
+
+CollectionliteralNode = t.TypeVar(
+    "CollectionLiteralNode", bound=t.Union[libcst.Tuple, libcst.List, libcst.Set]
+)
 
 
 class SlypTransformer(libcst.CSTTransformer):
@@ -148,7 +194,9 @@ class SlypTransformer(libcst.CSTTransformer):
         node: libcst.ConcatenatedString,
         relative_indent: int = 4,
     ) -> libcst.Concatenated:
-        """given a concatenated string node, add parens and "refold" the whitespace"""
+        """given a concatenated string node, add parens and "refold" the whitespace
+
+        do nothing if there are comments between the strings"""
         # build a list of concatenated string nodes (unroll the recursive structure)
         # including the final non-ConcatenatedString node
         concat_nodes: list[libcst.BaseString] = []
@@ -163,8 +211,11 @@ class SlypTransformer(libcst.CSTTransformer):
         # right-heavy structure of the original nodes)
         for idx in range(len(concat_nodes) - 2, -1, -1):
             cur = concat_nodes[idx]
+            comment = cur.whitespace_between.first_line.comment
             concat_nodes[idx] = cur.with_changes(
-                whitespace_between=_make_paren_whitespace(" " * (relative_indent + 4)),
+                whitespace_between=_make_paren_whitespace(
+                    " " * (relative_indent + 4), comment=comment
+                ),
                 right=concat_nodes[idx + 1],
             )
 
@@ -179,6 +230,22 @@ class SlypTransformer(libcst.CSTTransformer):
                     whitespace_before=_make_paren_whitespace(" " * relative_indent)
                 )
             ],
+        )
+
+    def refold_element_list(self, node: CollectionliteralNode) -> CollectionliteralNode:
+        return node.with_changes(
+            elements=[
+                (
+                    e.with_changes(
+                        value=self.refold_and_parenthesize_str_concat_node(e.value)
+                    )
+                    if libcst.matchers.matches(
+                        e, UNPARENTHESIZED_CONCAT_ELEMENT_MATCHER
+                    )
+                    else e
+                )
+                for e in node.elements
+            ]
         )
 
     # identifiers, attributes, lookups, and calls
@@ -275,9 +342,16 @@ class SlypTransformer(libcst.CSTTransformer):
     def leave_List(
         self, original_node: libcst.List, updated_node: libcst.List
     ) -> libcst.List:
-        if not original_node.lpar:
-            return updated_node
-        return self.modify_parenthesized_node(original_node, updated_node)
+        if original_node.lpar:
+            updated_node = self.modify_parenthesized_node(original_node, updated_node)
+        if libcst.matchers.matches(
+            original_node,
+            libcst.matchers.List(
+                elements=UNPARENTHESIZED_CONCAT_IN_ELEMENT_LIST_MATCHER  # type: ignore[arg-type]  # noqa: E501
+            ),
+        ):
+            updated_node = self.refold_element_list(updated_node)
+        return updated_node
 
     def leave_ListComp(
         self, original_node: libcst.ListComp, updated_node: libcst.ListComp
@@ -289,9 +363,16 @@ class SlypTransformer(libcst.CSTTransformer):
     def leave_Set(
         self, original_node: libcst.Set, updated_node: libcst.Set
     ) -> libcst.Set:
-        if not original_node.lpar:
-            return updated_node
-        return self.modify_parenthesized_node(original_node, updated_node)
+        if original_node.lpar:
+            updated_node = self.modify_parenthesized_node(original_node, updated_node)
+        if libcst.matchers.matches(
+            original_node,
+            libcst.matchers.Set(
+                elements=UNPARENTHESIZED_CONCAT_IN_ELEMENT_LIST_MATCHER  # type: ignore[arg-type]  # noqa: E501
+            ),
+        ):
+            updated_node = self.refold_element_list(updated_node)
+        return updated_node
 
     def leave_SetComp(
         self, original_node: libcst.SetComp, updated_node: libcst.SetComp
@@ -305,13 +386,20 @@ class SlypTransformer(libcst.CSTTransformer):
     ) -> libcst.Tuple:
         # list of tuples:
         #   [(1, 2), (3, 4)] != [1, 2, 3, 4]
-        if len(original_node.lpar) < 2:
-            return updated_node
-        return self.modify_parenthesized_node(
+        if len(original_node.lpar) >= 2:
+            updated_node = self.modify_parenthesized_node(
+                original_node,
+                updated_node,
+                preserve_innermost=True,
+            )
+        if libcst.matchers.matches(
             original_node,
-            updated_node,
-            preserve_innermost=True,
-        )
+            libcst.matchers.Tuple(
+                elements=UNPARENTHESIZED_CONCAT_IN_ELEMENT_LIST_MATCHER  # type: ignore[arg-type]  # noqa: E501
+            ),
+        ):
+            updated_node = self.refold_element_list(updated_node)
+        return updated_node
 
     # operators
 
@@ -646,9 +734,9 @@ class SlypTransformer(libcst.CSTTransformer):
                         header=(
                             libcst.TrailingWhitespace(
                                 whitespace=(
-                                    libcst.SimpleWhitespace("  ")
-                                    if trailing_comment
-                                    else libcst.SimpleWhitespace("")
+                                    libcst.SimpleWhitespace(
+                                        "  " if trailing_comment else ""
+                                    )
                                 ),
                                 comment=trailing_comment,
                             )
@@ -672,10 +760,13 @@ class SlypTransformer(libcst.CSTTransformer):
         return updated_node
 
 
-def _make_paren_whitespace(last_line_spacing: str) -> libcst.ParenthesizedWhitespace:
+def _make_paren_whitespace(
+    last_line_spacing: str, *, comment: str | None = None
+) -> libcst.ParenthesizedWhitespace:
     return libcst.ParenthesizedWhitespace(
         first_line=libcst.TrailingWhitespace(
-            whitespace=libcst.SimpleWhitespace(value=""),
+            whitespace=libcst.SimpleWhitespace(value="  " if comment else ""),
+            comment=comment,
             newline=libcst.Newline(),
         ),
         indent=True,

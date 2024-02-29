@@ -7,6 +7,9 @@
   variable immediately after testing it to return `None` instead
 - Replace W102 with autofixer behavior, which parenthesizes multiline
   concatenated strings in dict elements
+- Replace W103 with autofixer behavior, which parenthesizes multiline
+  concatenated strings in tuple, list, and set literals if there is more than
+  one element
 
 # 0.5.0
 

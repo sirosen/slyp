@@ -41,22 +41,6 @@ ALL_CODES: list[CodeDef] = [
     # errors & warnings, grouped by topic numerically
     # string concat
     CodeDef("E100", "unnecessary string concat", 'x = "foo " "bar"'),
-    CodeDef(
-        "W103",
-        "unparenthesized multiline string concat in collection type",
-        """
-        x = (  # a tuple
-            "alpha "
-            "beta",
-            "gamma"
-        )
-        x = {  # or a set
-            "alpha "
-            "beta",
-            "gamma"
-        }
-        """,
-    ),
     # ast matching
     CodeDef(
         "W200",
