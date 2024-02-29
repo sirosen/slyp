@@ -211,7 +211,9 @@ class SlypTransformer(libcst.CSTTransformer):
         # right-heavy structure of the original nodes)
         for idx in range(len(concat_nodes) - 2, -1, -1):
             cur = concat_nodes[idx]
-            comment = cur.whitespace_between.first_line.comment
+            comment = None
+            if isinstance(cur.whitespace_between, libcst.ParenthesizedWhitespace):
+                comment = cur.whitespace_between.first_line.comment
             concat_nodes[idx] = cur.with_changes(
                 whitespace_between=_make_paren_whitespace(
                     " " * (relative_indent + 4), comment=comment

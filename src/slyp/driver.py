@@ -8,6 +8,7 @@ import multiprocessing.pool
 import os
 import stat
 import subprocess
+import time
 import typing as t
 
 from slyp.checkers import check_file
@@ -45,29 +46,39 @@ def driver_main(args: argparse.Namespace) -> bool:
             (filename, disabled_codes, enabled_codes, passing_cache),
         )
     process_pool.close()
+
+    success = True
+
+    while futures:
+        ready = set()
+        for filename, future in futures.items():
+            if future.ready():
+                ready.add(filename)
+        if not ready:
+            time.sleep(0.05)
+
+        for filename in ready:
+            future = futures.pop(filename)
+            try:
+                result = future.get()
+            except Exception as e:
+                result = Result(
+                    success=False,
+                    messages=[
+                        Message(f"slyp error on '{filename}': {e}"),
+                        Message(
+                            f"slyp error on '{filename}': {e.__traceback__}",
+                            verbosity=2,
+                        ),
+                    ],
+                )
+            for message in result.messages:
+                if message.verbosity <= args.verbosity:
+                    print(message.message)
+
+            success = success and result.success
+
     process_pool.join()
-
-    result = Result(success=True, messages=[])
-
-    for filename, future in futures.items():
-        try:
-            inner_result = future.get()
-        except Exception as e:
-            inner_result = Result(
-                success=False,
-                messages=[
-                    Message(f"slyp error on '{filename}': {e}"),
-                    Message(
-                        f"slyp error on '{filename}': {e.__traceback__}",
-                        verbosity=2,
-                    ),
-                ],
-            )
-        result = result.join(inner_result)
-
-    for message in sorted(result.messages):
-        if message.verbosity <= args.verbosity:
-            print(message.message)
 
     return result.success
 
