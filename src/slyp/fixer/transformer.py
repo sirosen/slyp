@@ -143,6 +143,44 @@ class SlypTransformer(libcst.CSTTransformer):
             rpar=updated_node.rpar[num_parens_to_unwrap:],
         )
 
+    def refold_and_parenthesize_str_concat_node(
+        self,
+        node: libcst.ConcatenatedString,
+        relative_indent: int = 4,
+    ) -> libcst.Concatenated:
+        """given a concatenated string node, add parens and "refold" the whitespace"""
+        # build a list of concatenated string nodes (unroll the recursive structure)
+        # including the final non-ConcatenatedString node
+        concat_nodes: list[libcst.BaseString] = []
+        cur = node
+        while isinstance(cur, libcst.ConcatenatedString):
+            concat_nodes.append(cur)
+            cur = cur.right
+        concat_nodes.append(cur)  # type: ignore[arg-type]
+
+        # walk the list in reverse, updating the whitespace between the nodes and
+        # "clipping them back together" (hence the reversal here, maintaining the
+        # right-heavy structure of the original nodes)
+        for idx in range(len(concat_nodes) - 2, -1, -1):
+            cur = concat_nodes[idx]
+            concat_nodes[idx] = cur.with_changes(
+                whitespace_between=_make_paren_whitespace(" " * (relative_indent + 4)),
+                right=concat_nodes[idx + 1],
+            )
+
+        return concat_nodes[0].with_changes(
+            lpar=[
+                libcst.LeftParen(
+                    whitespace_after=_make_paren_whitespace(" " * (relative_indent + 4))
+                )
+            ],
+            rpar=[
+                libcst.RightParen(
+                    whitespace_before=_make_paren_whitespace(" " * relative_indent)
+                )
+            ],
+        )
+
     # identifiers, attributes, lookups, and calls
 
     def leave_Name(
@@ -197,38 +235,24 @@ class SlypTransformer(libcst.CSTTransformer):
                 value=UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER,
             ),
         ):
-            # build a list of concatenated string nodes (unroll the recursive structure)
-            # including the final non-ConcatenatedString node
-            concat_nodes: list[libcst.BaseString] = []
-            cur = updated_node.value
-            while isinstance(cur, libcst.ConcatenatedString):
-                concat_nodes.append(cur)
-                cur = cur.right
-            concat_nodes.append(cur)  # type: ignore[arg-type]
-
-            # walk the list in reverse, updating the whitespace between the nodes and
-            # "clipping them back together" (hence the reversal here, maintaining the
-            # right-heavy structure of the original nodes)
-            for idx in range(len(concat_nodes) - 2, -1, -1):
-                cur = concat_nodes[idx]
-                concat_nodes[idx] = cur.with_changes(
-                    whitespace_between=_make_paren_whitespace(" " * 8),
-                    right=concat_nodes[idx + 1],
-                )
-
             return updated_node.with_changes(
-                value=concat_nodes[0].with_changes(
-                    lpar=[
-                        libcst.LeftParen(
-                            whitespace_after=_make_paren_whitespace(" " * 8)
-                        )
-                    ],
-                    rpar=[
-                        libcst.RightParen(
-                            whitespace_before=_make_paren_whitespace(" " * 4)
-                        )
-                    ],
-                )
+                value=self.refold_and_parenthesize_str_concat_node(updated_node.value)
+            )
+        return updated_node
+
+    def leave_DictElement(
+        self, original_node: libcst.DictElement, updated_node: libcst.DictElement
+    ) -> libcst.DictElement:
+        if original_node.whitespace_after_colon.empty:
+            updated_node = updated_node.with_changes(
+                whitespace_after_colon=libcst.SimpleWhitespace(" ")
+            )
+        if libcst.matchers.matches(
+            original_node.value,
+            UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER,
+        ):
+            updated_node = updated_node.with_changes(
+                value=self.refold_and_parenthesize_str_concat_node(updated_node.value)
             )
         return updated_node
 

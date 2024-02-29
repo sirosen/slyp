@@ -50,23 +50,6 @@ def test_check_captures_e100(check_text):
     assert "foo.py:1: unnecessary string concat (E100)" in res.message_strings
 
 
-def test_check_captures_w102(check_text):
-    res = check_text(
-        """\
-        foo = {
-            "x": "foo"
-        "bar"
-        }
-        """,
-        filename="foo.py",
-    )
-    assert not res.success
-    assert (
-        "foo.py:2: unparenthesized multiline string concat in dict value (W102)"
-        in res.message_strings
-    )
-
-
 def test_check_captures_w103(check_text):
     res = check_text(
         """\

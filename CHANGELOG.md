@@ -3,8 +3,10 @@
 
 - Unexpected errors encountered when parsing files are now reported as failures, rather
   than causing `slyp` to abort
-- Replace E110 with a autofixer behavior, which rewrites the return of a known-`None`
+- Replace E110 with autofixer behavior, which rewrites the return of a known-`None`
   variable immediately after testing it to return `None` instead
+- Replace W102 with autofixer behavior, which parenthesizes multiline
+  concatenated strings in dict elements
 
 # 0.5.0
 

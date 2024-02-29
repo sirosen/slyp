@@ -81,17 +81,6 @@ class StrConcatErrorCollector(ErrorCollectingVisitor):
             lpos = self.get_metadata(libcst.metadata.PositionProvider, node.left).start
             self.errors.add((lpos.line, self.filename, "E100"))
 
-    def visit_DictElement(self, node: libcst.DictElement) -> None:
-        if libcst.matchers.matches(
-            node.value,
-            UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER,
-        ):
-            lpos = self.get_metadata(
-                libcst.metadata.PositionProvider,
-                node.value.left,  # type: ignore[attr-defined]
-            ).start
-            self.errors.add((lpos.line, self.filename, "W102"))
-
     def visit_Tuple(self, node: libcst.Tuple) -> None:
         if libcst.matchers.matches(
             node,
