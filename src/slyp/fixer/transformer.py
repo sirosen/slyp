@@ -543,6 +543,101 @@ class SlypTransformer(libcst.CSTTransformer):
                     + right.raw_value
                     + left.quote,
                 )
+        # two f-strings on a line, like
+        #   f"{foo} " f"{bar}"
+        # which can merge to
+        #   f"{foo} {bar}"
+        elif libcst.matchers.matches(
+            new_node,
+            libcst.matchers.ConcatenatedString(
+                whitespace_between=SIMPLE_WHITESPACE_NO_NEWLINE_MATCHER,
+                left=libcst.matchers.FormattedString(),
+                right=libcst.matchers.FormattedString(),
+            ),
+        ):
+            left_f: libcst.FormattedString = new_node.left  # type: ignore[assignment]
+            right_f: libcst.FormattedString = new_node.right  # type: ignore[assignment]
+
+            if (
+                (
+                    left_f.prefix == right_f.prefix
+                    or {left_f.prefix, right_f.prefix}.issubset({"fr", "rf"})
+                )
+                and left_f.quote == right_f.quote
+                and left_f.quote in {"'", '"'}
+            ):
+                return libcst.FormattedString(
+                    lpar=new_node.lpar,
+                    rpar=new_node.rpar,
+                    parts=(left_f.parts + right_f.parts),
+                    start=left_f.start,
+                    end=right_f.end,
+                )
+        # if it's a format string with a string that has no curly-braces (left)
+        # then we can join it, e.g.
+        #   "foo " f"{bar}"  ->  f"foo {bar}"
+        elif libcst.matchers.matches(
+            new_node,
+            libcst.matchers.ConcatenatedString(
+                whitespace_between=SIMPLE_WHITESPACE_NO_NEWLINE_MATCHER,
+                left=libcst.matchers.SimpleString(),
+                right=libcst.matchers.FormattedString(),
+            ),
+        ):
+            left: libcst.SimpleString = new_node.left  # type: ignore[assignment]
+            right_f: libcst.FormattedString = new_node.right  # type: ignore[assignment]
+            if (
+                (
+                    (left.prefix, right_f.prefix) == ("", "f")
+                    or {left.prefix, right_f.prefix}.issubset({"r", "rf", "fr"})
+                )
+                and left.quote == right_f.quote
+                and left.quote in {"'", '"'}
+                and "{" not in left.raw_value
+                and "}" not in left.raw_value
+            ):
+                return libcst.FormattedString(
+                    lpar=new_node.lpar,
+                    rpar=new_node.rpar,
+                    parts=(
+                        [libcst.FormattedStringText(value=left.raw_value)]
+                        + list(right_f.parts)
+                    ),
+                    start=right_f.start,
+                    end=right_f.end,
+                )
+        # same as the above, right-hand side; e.g.
+        #   f"{foo} " "bar"  ->  f"{foo} bar"
+        elif libcst.matchers.matches(
+            new_node,
+            libcst.matchers.ConcatenatedString(
+                whitespace_between=SIMPLE_WHITESPACE_NO_NEWLINE_MATCHER,
+                left=libcst.matchers.FormattedString(),
+                right=libcst.matchers.SimpleString(),
+            ),
+        ):
+            left_f: libcst.FormattedString = new_node.left  # type: ignore[assignment]
+            right: libcst.SimpleString = new_node.right  # type: ignore[assignment]
+            if (
+                (
+                    (left_f.prefix, right.prefix) == ("f", "")
+                    or {left_f.prefix, right.prefix}.issubset({"r", "rf", "fr"})
+                )
+                and left_f.quote == right.quote
+                and left_f.quote in {"'", '"'}
+                and "{" not in right.raw_value
+                and "}" not in right.raw_value
+            ):
+                return libcst.FormattedString(
+                    lpar=new_node.lpar,
+                    rpar=new_node.rpar,
+                    parts=(
+                        list(left_f.parts)
+                        + [libcst.FormattedStringText(value=right.raw_value)]
+                    ),
+                    start=left_f.start,
+                    end=left_f.end,
+                )
 
         return new_node
 

@@ -86,3 +86,57 @@ def test_double_concat(fix_text):
         x = "foo bar baz"
         """
     )
+
+
+def test_concat_fstrings(fix_text):
+    new_text, _ = fix_text(
+        """\
+        x = f"{foo}" f"{bar}"
+        y = fr"{foo}" Fr"{bar}"
+        """,
+    )
+    assert new_text == textwrap.dedent(
+        """\
+        x = f"{foo}{bar}"
+        y = fr"{foo}{bar}"
+        """
+    )
+
+
+def test_concat_fstring_with_simple(fix_text):
+    new_text, _ = fix_text(
+        """\
+        x = f"{foo}" "bar"
+        y = "foo" f"{bar}"
+        p = fr"{foo}" r"bar"
+        q = r"foo" rf"{bar}"
+        """,
+    )
+    assert new_text == textwrap.dedent(
+        """\
+        x = f"{foo}bar"
+        y = f"foo{bar}"
+        p = fr"{foo}bar"
+        q = rf"foo{bar}"
+        """
+    )
+
+
+def test_concat_fstring_skips_mismatched_quotes(fix_text):
+    fix_text(
+        """\
+        x = f'{foo}' "bar"
+        y = 'foo' f"{bar}"
+        """,
+        expect_changes=False,
+    )
+
+
+def test_concat_fstring_skips_if_curly_braces_present(fix_text):
+    fix_text(
+        """\
+        x = f'{foo}' "bar{}"
+        x = 'foo{}' f"{bar}"
+        """,
+        expect_changes=False,
+    )

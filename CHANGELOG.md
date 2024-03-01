@@ -1,6 +1,9 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+- Enable autofixing of some concatenated strings which combine f-strings with
+  simple strings, as long as no extra escaping is needed
+
 # 0.6.0
 
 - Unexpected errors encountered when parsing files are now reported as failures, rather

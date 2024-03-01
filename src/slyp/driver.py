@@ -65,7 +65,7 @@ def parallel_process(
 ) -> bool:
     if not args.no_cache:
         passing_cache: PassingFileCache | None = PassingFileCache(
-            contract_version="1.3",
+            contract_version="1.4",
             config_id=compute_config_id(enabled_codes, disabled_codes),
         )
     else:
