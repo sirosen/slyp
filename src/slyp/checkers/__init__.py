@@ -18,7 +18,6 @@ def check_file(
     disabled_codes: set[str],
     enabled_codes: set[str],
 ) -> Result:
-    messages: list[Message] = [Message(f"checking {file_obj.filename}", verbosity=1)]
 
     try:
         cst_errors = run_cst_checkers(file_obj)
@@ -37,8 +36,10 @@ def check_file(
         and not _exempt(lines, lineno - 1, code)
     )
 
-    for lineno, code in filtered_errors:
-        messages.append(Message(f"{file_obj.filename}:{lineno}: {CODE_MAP[code]}"))
+    messages = [
+        Message(f"{file_obj.filename}:{lineno}: {CODE_MAP[code]}")
+        for lineno, code in filtered_errors
+    ]
 
     if filtered_errors:
         return Result(messages=messages, success=False)

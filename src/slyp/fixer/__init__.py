@@ -15,25 +15,23 @@ def fix_file(file_obj: HashableFile) -> Result:
     # ignore failures to parse and treat these as "unchanged"
     # linting will flag these independently
     except (RecursionError, libcst.ParserSyntaxError, libcst.CSTValidationError):
-        return Result(success=True, messages=[])
+        return Result(
+            success=False,
+            messages=[
+                Message(f"slyp: failed to parse {file_obj.filename}", verbosity=1)
+            ],
+        )
 
     if new_data == file_obj.binary_content:
         if file_obj.is_stdio:
             file_obj.write(file_obj.binary_content)
         return Result(
-            messages=[
-                Message(
-                    f"slyp: no changes to {file_obj.filename}", verbosity=1, priority=0
-                )
-            ],
+            messages=[Message(f"slyp: no changes to {file_obj.filename}", verbosity=1)],
             success=True,
         )
 
     file_obj.write(new_data)
-    return Result(
-        messages=[Message(f"slyp: fixed {file_obj.filename}", priority=0)],
-        success=False,
-    )
+    return Result(messages=[Message(f"slyp: fixed {file_obj.filename}")], success=False)
 
 
 def _fix_data(content: bytes) -> bytes:

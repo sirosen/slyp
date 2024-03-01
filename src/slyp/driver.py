@@ -75,6 +75,8 @@ def parallel_process(
 
     futures = {}
     for filename in all_py_filenames(args.files, args.use_git_ls):
+        if args.verbosity > 1:
+            print(f"slpy: processing {filename}")
         futures[filename] = process_pool.apply_async(
             process_file,
             (filename, args.only, disabled_codes, enabled_codes, passing_cache),
