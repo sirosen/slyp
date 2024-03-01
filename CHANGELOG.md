@@ -1,6 +1,8 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+# 0.6.0
+
 - Unexpected errors encountered when parsing files are now reported as failures, rather
   than causing `slyp` to abort
 - Replace E110 with autofixer behavior, which rewrites the return of a known-`None`
