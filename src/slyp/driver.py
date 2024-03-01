@@ -19,6 +19,7 @@ from slyp.hashable_file import HashableFile
 from slyp.result import Message, Result
 
 DEFAULT_DISABLED_CODES: set[str] = {"W201", "W202", "W203"}
+CONTRACT_VERSION: str = "1.4"
 
 
 def driver_main(args: argparse.Namespace) -> bool:
@@ -65,7 +66,7 @@ def parallel_process(
 ) -> bool:
     if not args.no_cache:
         passing_cache: PassingFileCache | None = PassingFileCache(
-            contract_version="1.4",
+            contract_version=CONTRACT_VERSION,
             config_id=compute_config_id(enabled_codes, disabled_codes),
         )
     else:
