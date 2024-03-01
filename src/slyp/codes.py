@@ -41,6 +41,7 @@ ALL_CODES: list[CodeDef] = [
     # errors & warnings, grouped by topic numerically
     # string concat
     CodeDef("E100", "unnecessary string concat", 'x = "foo " "bar"'),
+    CodeDef("E101", "unnecessary string concat with plus", 'x = "foo " + "bar"'),
     # ast matching
     CodeDef(
         "W200",

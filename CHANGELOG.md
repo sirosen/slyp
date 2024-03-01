@@ -15,6 +15,7 @@
 - Add basic support for reading data from stdin, in which case
   - `--only` must be used
   - if `--only=fix`, then the resulting file is always written to stdout
+- Implement an additional check for unnecessary string concatenation, E101
 
 # 0.5.0
 

@@ -101,7 +101,7 @@ ParenFixNodeTypes = t.Union[
 PFN = t.TypeVar("PFN", bound=ParenFixNodeTypes)
 
 
-CollectionliteralNode = t.TypeVar(
+CollectionLiteralNode = t.TypeVar(
     "CollectionLiteralNode", bound=t.Union[libcst.Tuple, libcst.List, libcst.Set]
 )
 
@@ -193,18 +193,16 @@ class SlypTransformer(libcst.CSTTransformer):
         self,
         node: libcst.ConcatenatedString,
         relative_indent: int = 4,
-    ) -> libcst.Concatenated:
-        """given a concatenated string node, add parens and "refold" the whitespace
-
-        do nothing if there are comments between the strings"""
+    ) -> libcst.ConcatenatedString:
+        """given a concatenated string node, add parens and "refold" the whitespace"""
         # build a list of concatenated string nodes (unroll the recursive structure)
         # including the final non-ConcatenatedString node
         concat_nodes: list[libcst.BaseString] = []
-        cur = node
+        cur: libcst.BaseString = node
         while isinstance(cur, libcst.ConcatenatedString):
             concat_nodes.append(cur)
             cur = cur.right
-        concat_nodes.append(cur)  # type: ignore[arg-type]
+        concat_nodes.append(cur)
 
         # walk the list in reverse, updating the whitespace between the nodes and
         # "clipping them back together" (hence the reversal here, maintaining the
@@ -212,8 +210,11 @@ class SlypTransformer(libcst.CSTTransformer):
         for idx in range(len(concat_nodes) - 2, -1, -1):
             cur = concat_nodes[idx]
             comment = None
-            if isinstance(cur.whitespace_between, libcst.ParenthesizedWhitespace):
-                comment = cur.whitespace_between.first_line.comment
+            if isinstance(
+                cur.whitespace_between,  # type: ignore[attr-defined]
+                libcst.ParenthesizedWhitespace,
+            ):
+                comment = cur.whitespace_between.first_line.comment  # type: ignore[attr-defined]  # noqa: E501
             concat_nodes[idx] = cur.with_changes(
                 whitespace_between=_make_paren_whitespace(
                     " " * (relative_indent + 4), comment=comment
@@ -221,7 +222,7 @@ class SlypTransformer(libcst.CSTTransformer):
                 right=concat_nodes[idx + 1],
             )
 
-        return concat_nodes[0].with_changes(
+        return concat_nodes[0].with_changes(  # type: ignore[return-value]
             lpar=[
                 libcst.LeftParen(
                     whitespace_after=_make_paren_whitespace(" " * (relative_indent + 4))
@@ -234,12 +235,14 @@ class SlypTransformer(libcst.CSTTransformer):
             ],
         )
 
-    def refold_element_list(self, node: CollectionliteralNode) -> CollectionliteralNode:
-        return node.with_changes(
+    def refold_element_list(self, node: CollectionLiteralNode) -> CollectionLiteralNode:
+        return node.with_changes(  # type: ignore[return-value]
             elements=[
                 (
                     e.with_changes(
-                        value=self.refold_and_parenthesize_str_concat_node(e.value)
+                        value=self.refold_and_parenthesize_str_concat_node(
+                            e.value  # type: ignore[arg-type]
+                        )
                     )
                     if libcst.matchers.matches(
                         e, UNPARENTHESIZED_CONCAT_ELEMENT_MATCHER
@@ -305,7 +308,9 @@ class SlypTransformer(libcst.CSTTransformer):
             ),
         ):
             return updated_node.with_changes(
-                value=self.refold_and_parenthesize_str_concat_node(updated_node.value)
+                value=self.refold_and_parenthesize_str_concat_node(
+                    updated_node.value  # type: ignore[arg-type]
+                )
             )
         return updated_node
 
@@ -321,7 +326,9 @@ class SlypTransformer(libcst.CSTTransformer):
             UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER,
         ):
             updated_node = updated_node.with_changes(
-                value=self.refold_and_parenthesize_str_concat_node(updated_node.value)
+                value=self.refold_and_parenthesize_str_concat_node(
+                    updated_node.value  # type: ignore[arg-type]
+                )
             )
         return updated_node
 
@@ -763,7 +770,7 @@ class SlypTransformer(libcst.CSTTransformer):
 
 
 def _make_paren_whitespace(
-    last_line_spacing: str, *, comment: str | None = None
+    last_line_spacing: str, *, comment: libcst.Comment | None = None
 ) -> libcst.ParenthesizedWhitespace:
     return libcst.ParenthesizedWhitespace(
         first_line=libcst.TrailingWhitespace(

@@ -90,41 +90,12 @@ Some warnings are disabled by default; enable them with `--enable`.
 x = "foo " "bar"
 ```
 
-### W102
+### E101
 
-'unparenthesized multiline string concat in dict value'
-
-```python
-{
-    "foo": "alpha "
-    "beta"
-}
-```
-
-### W103
-
-'unparenthesized multiline string concat in collection type'
+'unnecessary string concat with plus'
 
 ```python
-x = (  # a tuple
-    "alpha "
-    "beta",
-    "gamma"
-)
-x = {  # or a set
-    "alpha "
-    "beta",
-    "gamma"
-}
-```
-
-### E110
-
-'returning a variable checked as None, rather than returning None'
-
-```python
-if x is None:
-    return x  # should be `return None`
+x = "foo " + "bar"
 ```
 
 ### W200

@@ -27,3 +27,28 @@ class StrConcatErrorCollector(ErrorCollectingVisitor):
         ):
             lpos = self.get_metadata(libcst.metadata.PositionProvider, node.left).start
             self.errors.add((lpos.line, self.filename, "E100"))
+
+    def visit_BinaryOperation(self, node: libcst.BinaryOperation) -> None:
+        # check for 'unnecessary string concat' situations with explicit `+`
+        # e.g.
+        #   x = "foo " + "bar"
+        if libcst.matchers.matches(
+            node,
+            libcst.matchers.BinaryOperation(
+                operator=libcst.matchers.Add(),
+                left=libcst.matchers.OneOf(
+                    libcst.matchers.SimpleString(),
+                    libcst.matchers.ConcatenatedString(),
+                    libcst.matchers.FormattedString(),
+                ),
+                right=libcst.matchers.OneOf(
+                    libcst.matchers.SimpleString(),
+                    libcst.matchers.ConcatenatedString(),
+                    libcst.matchers.FormattedString(),
+                ),
+            ),
+        ):
+            lpos = self.get_metadata(libcst.metadata.PositionProvider, node.left).end
+            rpos = self.get_metadata(libcst.metadata.PositionProvider, node.right).start
+            if lpos.line == rpos.line:
+                self.errors.add((lpos.line, self.filename, "E101"))
