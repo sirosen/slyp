@@ -28,6 +28,11 @@ def main() -> None:
         "--use-git-ls", action="store_true", help="find python files from git-ls-files"
     )
     parser.add_argument(
+        "--only",
+        choices=("fix", "lint"),
+        help="Only fix or only lint.",
+    )
+    parser.add_argument(
         "--disable",
         help="Disable error and warning codes (comma delimited)",
         default="",
@@ -54,6 +59,12 @@ def main() -> None:
 
     if args.use_git_ls and args.files:
         parser.error("--use-git-ls requires no filenames as arguments")
+
+    if "-" in args.files:
+        if len(args.files) > 1:
+            parser.error("stdin can only be used with one file at a time")
+        if args.only is None:
+            parser.error("stdin mode requires '--only' to be set")
 
     success = driver_main(args)
 

@@ -29,6 +29,40 @@ def driver_main(args: argparse.Namespace) -> bool:
     if "all" not in enabled_codes:
         disabled_codes = disabled_codes | DEFAULT_DISABLED_CODES
 
+    if args.files == ["-"]:
+        return process_stdin(args, disabled_codes, enabled_codes)
+    else:
+        return parallel_process(args, disabled_codes, enabled_codes)
+
+
+def process_stdin(
+    args: argparse.Namespace, disabled_codes: set[str], enabled_codes: set[str]
+) -> bool:
+    result = Result(success=True, messages=[])
+    file_obj = HashableFile("-")
+
+    if args.only == "fix":
+        result = fix_file(file_obj)
+    elif args.only == "lint":
+        result = result.join(
+            check_file(
+                file_obj,
+                disabled_codes=disabled_codes,
+                enabled_codes=enabled_codes,
+            )
+        )
+        for message in result.messages:
+            if message.verbosity <= args.verbosity:
+                print(message.message)
+    else:
+        raise NotImplementedError("stdin with unexpected --only value")
+
+    return result.success
+
+
+def parallel_process(
+    args: argparse.Namespace, disabled_codes: set[str], enabled_codes: set[str]
+) -> bool:
     if not args.no_cache:
         passing_cache: PassingFileCache | None = PassingFileCache(
             contract_version="1.3",
@@ -43,7 +77,7 @@ def driver_main(args: argparse.Namespace) -> bool:
     for filename in all_py_filenames(args.files, args.use_git_ls):
         futures[filename] = process_pool.apply_async(
             process_file,
-            (filename, disabled_codes, enabled_codes, passing_cache),
+            (filename, args.only, disabled_codes, enabled_codes, passing_cache),
         )
     process_pool.close()
 
@@ -85,6 +119,7 @@ def driver_main(args: argparse.Namespace) -> bool:
 
 def process_file(
     filename: str,
+    only: str | None,
     disabled_codes: set[str],
     enabled_codes: set[str],
     passing_cache: PassingFileCache | None,
@@ -99,14 +134,16 @@ def process_file(
             )
             return result
 
-    fix_result = fix_file(file_obj)
-    check_result = check_file(
-        file_obj, disabled_codes=disabled_codes, enabled_codes=enabled_codes
-    )
+    if only in ("fix", None):
+        result = result.join(fix_file(file_obj))
+    if only in ("lint", None):
+        result = result.join(
+            check_file(
+                file_obj, disabled_codes=disabled_codes, enabled_codes=enabled_codes
+            )
+        )
 
-    result = result.join(fix_result).join(check_result)
-
-    if passing_cache and result.success:
+    if passing_cache and result.success and only is None:
         passing_cache.add(file_obj)
     return result
 

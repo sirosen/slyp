@@ -18,6 +18,8 @@ def fix_file(file_obj: HashableFile) -> Result:
         return Result(success=True, messages=[])
 
     if new_data == file_obj.binary_content:
+        if file_obj.is_stdio:
+            file_obj.write(file_obj.binary_content)
         return Result(
             messages=[
                 Message(

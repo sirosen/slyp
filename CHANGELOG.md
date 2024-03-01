@@ -10,6 +10,11 @@
 - Replace W103 with autofixer behavior, which parenthesizes multiline
   concatenated strings in tuple, list, and set literals if there is more than
   one element
+- Add the `--only` flag, enabling `--only=lint` or `--only=fix` to run only
+  the linting or fixing
+- Add basic support for reading data from stdin, in which case
+  - `--only` must be used
+  - if `--only=fix`, then the resulting file is always written to stdout
 
 # 0.5.0
 
