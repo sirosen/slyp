@@ -1,6 +1,8 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+# 0.6.1
+
 - Enable autofixing of some concatenated strings which combine f-strings with
   simple strings, as long as no extra escaping is needed
 - Autofixing can be disabled with comments containing `slyp: disable`,
