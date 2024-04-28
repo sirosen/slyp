@@ -59,7 +59,7 @@ def _find_disabled_ranges(content: bytes) -> list[tuple[int, int | float]]:
         if _ENABLE_RE.search(line):
             end_locations.append(lineno)
 
-    ranges = []
+    ranges: list[tuple[int, int | float]] = []
     for start in start_locations:
         for end in end_locations:
             if end > start:

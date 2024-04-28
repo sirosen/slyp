@@ -112,12 +112,16 @@ class SlypTransformer(libcst.CSTTransformer):
         libcst.metadata.ParentNodeProvider,
     )
 
-    def __init__(self, disabled_line_ranges: list[tuple[int, int]]) -> None:
+    def __init__(self, disabled_line_ranges: list[tuple[int, int | float]]) -> None:
         self.disabled_line_ranges = disabled_line_ranges
 
     def on_leave(
         self, original_node: libcst.CSTNodeT, updated_node: libcst.CSTNodeT
-    ) -> libcst.CSTNodeT:
+    ) -> (
+        libcst.CSTNodeT
+        | libcst.RemovalSentinel
+        | libcst.FlattenSentinel[libcst.CSTNodeT]
+    ):
         new_updated_node = super().on_leave(original_node, updated_node)
         if new_updated_node != updated_node:
             # if the node has been updated, check if disabled
@@ -524,11 +528,16 @@ class SlypTransformer(libcst.CSTTransformer):
         self,
         original_node: libcst.ConcatenatedString,
         updated_node: libcst.ConcatenatedString,
-    ) -> libcst.ConcatenatedString | libcst.SimpleString:
+    ) -> libcst.ConcatenatedString | libcst.SimpleString | libcst.FormattedString:
         new_node = updated_node
         # if the node is parenthesized, potentially strip parens
         if original_node.lpar:
             new_node = self.modify_parenthesized_node(original_node, updated_node)
+
+        left: libcst.SimpleString
+        right: libcst.SimpleString
+        left_f: libcst.FormattedString
+        right_f: libcst.FormattedString
 
         # if the node is a pair of simple strings with no newline between them,
         # this may be a chance to join them into a single string node
@@ -548,8 +557,8 @@ class SlypTransformer(libcst.CSTTransformer):
             # attempt to manipulate unescaped quotes in the string values
             # having done this verification, join the strings into a single node,
             # preserving the prefix and quote style
-            left: libcst.SimpleString = new_node.left  # type: ignore[assignment]
-            right: libcst.SimpleString = new_node.right  # type: ignore[assignment]
+            left = new_node.left  # type: ignore[assignment]
+            right = new_node.right  # type: ignore[assignment]
             if (
                 (
                     left.prefix == right.prefix
@@ -579,8 +588,8 @@ class SlypTransformer(libcst.CSTTransformer):
                 right=libcst.matchers.FormattedString(),
             ),
         ):
-            left_f: libcst.FormattedString = new_node.left  # type: ignore[assignment]
-            right_f: libcst.FormattedString = new_node.right  # type: ignore[assignment]
+            left_f = new_node.left  # type: ignore[assignment]
+            right_f = new_node.right  # type: ignore[assignment]
 
             if (
                 (
@@ -593,7 +602,7 @@ class SlypTransformer(libcst.CSTTransformer):
                 return libcst.FormattedString(
                     lpar=new_node.lpar,
                     rpar=new_node.rpar,
-                    parts=(left_f.parts + right_f.parts),
+                    parts=(left_f.parts + right_f.parts),  # type: ignore[operator]
                     start=left_f.start,
                     end=right_f.end,
                 )
@@ -608,8 +617,8 @@ class SlypTransformer(libcst.CSTTransformer):
                 right=libcst.matchers.FormattedString(),
             ),
         ):
-            left: libcst.SimpleString = new_node.left  # type: ignore[assignment]
-            right_f: libcst.FormattedString = new_node.right  # type: ignore[assignment]
+            left = new_node.left  # type: ignore[assignment]
+            right_f = new_node.right  # type: ignore[assignment]
             if (
                 (
                     (left.prefix, right_f.prefix) == ("", "f")
@@ -640,8 +649,8 @@ class SlypTransformer(libcst.CSTTransformer):
                 right=libcst.matchers.SimpleString(),
             ),
         ):
-            left_f: libcst.FormattedString = new_node.left  # type: ignore[assignment]
-            right: libcst.SimpleString = new_node.right  # type: ignore[assignment]
+            left_f = new_node.left  # type: ignore[assignment]
+            right = new_node.right  # type: ignore[assignment]
             if (
                 (
                     (left_f.prefix, right.prefix) == ("f", "")
