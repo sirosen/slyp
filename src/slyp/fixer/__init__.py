@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import re
+
 import libcst
 
 from slyp.hashable_file import HashableFile
 from slyp.result import Message, Result
 
 from .transformer import SlypTransformer
+
+_DISALBE_RE = re.compile(rb"#\s*((slyp:\s*disable(\=format)?)|(fmt:\s*off))(\s|$)")
+_ENABLE_RE = re.compile(rb"#\s*((slyp:\s*enable(\=format)?)|(fmt:\s*on))(\s|$)")
 
 
 def fix_file(file_obj: HashableFile) -> Result:
@@ -35,10 +40,31 @@ def fix_file(file_obj: HashableFile) -> Result:
 
 
 def _fix_data(content: bytes) -> bytes:
+    disabled_line_ranges = _find_disabled_ranges(content)
     raw_tree = libcst.parse_module(content)
     tree = libcst.MetadataWrapper(raw_tree)
 
-    tree = tree.visit(SlypTransformer())  # type: ignore[assignment]
+    tree = tree.visit(SlypTransformer(disabled_line_ranges))  # type: ignore[assignment]
 
     code: str = tree.code  # type: ignore[attr-defined]
     return code.encode(tree.encoding)  # type: ignore[attr-defined]
+
+
+def _find_disabled_ranges(content: bytes) -> list[tuple[int, int | float]]:
+    start_locations = []
+    end_locations = []
+    for lineno, line in enumerate(content.split(b"\n")):
+        if _DISALBE_RE.search(line):
+            start_locations.append(lineno)
+        if _ENABLE_RE.search(line):
+            end_locations.append(lineno)
+
+    ranges = []
+    for start in start_locations:
+        for end in end_locations:
+            if end > start:
+                ranges.append((start, end))
+                break
+        else:
+            ranges.append((start, float("inf")))
+    return ranges

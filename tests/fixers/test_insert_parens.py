@@ -22,6 +22,21 @@ def test_fixer_inserts_missing_parens_call_arg(fix_text):
     )
 
 
+@pytest.mark.parametrize(
+    "disable_comment",
+    ("# fmt: off", "#fmt:off ", "#slyp: disable", "# slyp: disable=format "),
+)
+def test_missing_paren_transform_disabled_with_fmt_off(fix_text, disable_comment):
+    fix_text(
+        f"""\
+        #{disable_comment}
+        foo(x="foo"
+        "bar")
+        """,
+        expect_changes=False,
+    )
+
+
 def test_fixer_inserts_missing_parens_call_arg_in_list(fix_text):
     # normal case for paren insertion fixer, in an arg list
     # black fixing will be a no-op because we already handle indents nicely for this

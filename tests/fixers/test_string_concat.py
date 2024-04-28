@@ -28,6 +28,23 @@ def test_simple_string_concat_with_matching_characteristics(fix_text):
     )
 
 
+def test_fmt_toggle_can_reenable_fixing(fix_text):
+    new_text, _ = fix_text(
+        """\
+        # slyp: disable
+        # fmt: on
+        a = "foo " "bar"
+        """,
+    )
+    assert new_text == textwrap.dedent(
+        """\
+        # slyp: disable
+        # fmt: on
+        a = "foo bar"
+        """
+    )
+
+
 def test_quote_style_mismatch_suppresses_fixing(fix_text):
     fix_text(
         """\

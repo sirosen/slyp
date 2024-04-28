@@ -3,6 +3,9 @@
 
 - Enable autofixing of some concatenated strings which combine f-strings with
   simple strings, as long as no extra escaping is needed
+- Autofixing can be disabled with comments containing `slyp: disable`,
+  `slyp: disable=format`, or `fmt: off`. Inverse comments, `slyp: enable` and
+  `fmt: on` can be used to re-enable autofixing.
 
 # 0.6.0
 

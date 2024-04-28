@@ -18,6 +18,22 @@ def test_none_checked_var_return_transform(fix_text):
     )
 
 
+@pytest.mark.parametrize(
+    "disable_comment",
+    ("# fmt: off", "#fmt:off ", "#slyp: disable", "# slyp: disable=format "),
+)
+def test_none_checked_var_return_transform_disabled_with_fmt_off(
+    fix_text, disable_comment
+):
+    fix_text(
+        f"""\
+        if foo is None:
+            return foo{disable_comment}
+        """,
+        expect_changes=False,
+    )
+
+
 def test_none_checked_var_return_transform_preserves_leading_comment(fix_text):
     new_text, _ = fix_text(
         """\

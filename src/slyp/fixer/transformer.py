@@ -112,6 +112,30 @@ class SlypTransformer(libcst.CSTTransformer):
         libcst.metadata.ParentNodeProvider,
     )
 
+    def __init__(self, disabled_line_ranges: list[tuple[int, int]]) -> None:
+        self.disabled_line_ranges = disabled_line_ranges
+
+    def on_leave(
+        self, original_node: libcst.CSTNodeT, updated_node: libcst.CSTNodeT
+    ) -> libcst.CSTNodeT:
+        new_updated_node = super().on_leave(original_node, updated_node)
+        if new_updated_node != updated_node:
+            # if the node has been updated, check if disabled
+            if not self._node_is_disabled(original_node):
+                return new_updated_node
+        return updated_node
+
+    def _node_is_disabled(self, node: libcst.CSTNode) -> bool:
+        if not self.disabled_line_ranges:
+            return False
+        start_line = self.get_metadata(
+            libcst.metadata.PositionProvider, node
+        ).start.line
+        for start, end in self.disabled_line_ranges:
+            if start <= start_line < end:
+                return True
+        return False
+
     def _singular_parens_are_same_line(
         self, node: libcst.With | libcst.ImportFrom
     ) -> bool:
