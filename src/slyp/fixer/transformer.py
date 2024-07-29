@@ -307,6 +307,24 @@ class SlypTransformer(libcst.CSTTransformer):
     def leave_Call(
         self, original_node: libcst.Call, updated_node: libcst.Call
     ) -> libcst.Call:
+        if libcst.matchers.matches(
+            original_node,
+            libcst.matchers.Call(
+                func=libcst.matchers.Name("dict"),
+                args=[
+                    libcst.matchers.ZeroOrMore(
+                        libcst.matchers.Arg(star="**")
+                        | libcst.matchers.Arg(keyword=libcst.matchers.Name())
+                    )
+                ],
+            ),
+        ):
+            updated_node = libcst.Dict(
+                elements=[_convert_dict_element(arg) for arg in original_node.args],
+                lpar=original_node.lpar,
+                rpar=original_node.rpar,
+            )
+
         if not original_node.lpar:
             return updated_node
         return self.modify_parenthesized_node(original_node, updated_node)
@@ -909,3 +927,12 @@ def _make_paren_whitespace(
         indent=True,
         last_line=libcst.SimpleWhitespace(value=last_line_spacing),
     )
+
+
+def _convert_dict_element(arg: libcst.Arg) -> libcst.BaseDictElement:
+    if arg.star == "":
+        return libcst.DictElement(
+            key=libcst.SimpleString(value=f'"{arg.keyword.value}"'),
+            value=arg.value,
+        )
+    return libcst.StarredDictElement(value=arg.value)
