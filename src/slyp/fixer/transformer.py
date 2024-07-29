@@ -319,11 +319,14 @@ class SlypTransformer(libcst.CSTTransformer):
                 ],
             ),
         ):
-            updated_node = libcst.Dict(
-                elements=[_convert_dict_element(arg) for arg in original_node.args],
-                lpar=original_node.lpar,
-                rpar=original_node.rpar,
+            dict_node = libcst.Dict(
+                elements=[_convert_dict_element(arg) for arg in updated_node.args],
+                lpar=updated_node.lpar,
+                rpar=updated_node.rpar,
             )
+            if not original_node.lpar:
+                return dict_node
+            return self.modify_parenthesized_node(original_node, dict_node)
 
         if not original_node.lpar:
             return updated_node
