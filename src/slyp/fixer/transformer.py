@@ -178,7 +178,11 @@ class SlypTransformer(libcst.CSTTransformer):
         return max_offset + 1
 
     def modify_parenthesized_node(
-        self, original_node: PFN, updated_node: PFN, *, preserve_innermost: bool = False
+        self,
+        original_node: ParenFixNodeTypes,
+        updated_node: PFN,
+        *,
+        preserve_innermost: bool = False,
     ) -> PFN:
         num_parens_to_unwrap: int | None = None
         if not preserve_innermost:
@@ -306,7 +310,7 @@ class SlypTransformer(libcst.CSTTransformer):
 
     def leave_Call(
         self, original_node: libcst.Call, updated_node: libcst.Call
-    ) -> libcst.CSTNode:
+    ) -> libcst.BaseExpression:
         # match a 'dict()' call whose args can unpack to a dict literal
         if libcst.matchers.matches(
             original_node,
@@ -344,15 +348,19 @@ class SlypTransformer(libcst.CSTTransformer):
                 ],
             ),
         ):
-            genexp = updated_node.args[0].value
-            if original_node.func.value == "set":
+            genexp: libcst.GeneratorExp = updated_node.args[
+                0
+            ].value  # type: ignore[assignment]
+            funcname = original_node.func.value  # type: ignore[attr-defined]
+            comp_node: libcst.SetComp | libcst.ListComp
+            if funcname == "set":
                 comp_node = libcst.SetComp(
                     elt=genexp.elt,
                     for_in=genexp.for_in,
                     lpar=updated_node.lpar,
                     rpar=updated_node.rpar,
                 )
-            elif original_node.func.value == "list":
+            elif funcname == "list":
                 comp_node = libcst.ListComp(
                     elt=genexp.elt,
                     for_in=genexp.for_in,
@@ -969,6 +977,10 @@ def _make_paren_whitespace(
 
 def _convert_dict_element(arg: libcst.Arg) -> libcst.BaseDictElement:
     if arg.star == "":
+        if not arg.keyword:
+            raise ValueError(
+                "Cannot convert dict arg which is non-splatted, non-keyword"
+            )
         return libcst.DictElement(
             key=libcst.SimpleString(value=f'"{arg.keyword.value}"'),
             value=arg.value,
