@@ -306,7 +306,8 @@ class SlypTransformer(libcst.CSTTransformer):
 
     def leave_Call(
         self, original_node: libcst.Call, updated_node: libcst.Call
-    ) -> libcst.Call:
+    ) -> libcst.CSTNode:
+        # match a 'dict()' call whose args can unpack to a dict literal
         if libcst.matchers.matches(
             original_node,
             libcst.matchers.Call(
@@ -330,6 +331,37 @@ class SlypTransformer(libcst.CSTTransformer):
             if not original_node.lpar:
                 return dict_node
             return self.modify_parenthesized_node(original_node, dict_node)
+
+        # match a 'set()' or 'list()' call whose only argument is a generator expression
+        if libcst.matchers.matches(
+            original_node,
+            libcst.matchers.Call(
+                func=libcst.matchers.Name("set") | libcst.matchers.Name("list"),
+                args=[
+                    libcst.matchers.Arg(
+                        star="", keyword=None, value=libcst.matchers.GeneratorExp()
+                    )
+                ],
+            ),
+        ):
+            genexp = updated_node.args[0].value
+            if original_node.func.value == "set":
+                comp_node = libcst.SetComp(
+                    elt=genexp.elt,
+                    for_in=genexp.for_in,
+                    lpar=updated_node.lpar,
+                    rpar=updated_node.rpar,
+                )
+            elif original_node.func.value == "list":
+                comp_node = libcst.ListComp(
+                    elt=genexp.elt,
+                    for_in=genexp.for_in,
+                    lpar=updated_node.lpar,
+                    rpar=updated_node.rpar,
+                )
+            if not original_node.lpar:
+                return comp_node
+            return self.modify_parenthesized_node(original_node, comp_node)
 
         if not original_node.lpar:
             return updated_node

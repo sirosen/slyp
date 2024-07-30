@@ -99,3 +99,41 @@ def test_dict_call_fixer_preserves_the_simplest_whitespace(fix_text):
         }
         """
     )
+
+
+def test_set_fixer_converts_call_of_generator(fix_text):
+    new_text, _ = fix_text(
+        """\
+        a = set(x for x in y())
+        """
+    )
+    assert new_text == textwrap.dedent(
+        """\
+        a = {x for x in y()}
+        """
+    )
+
+
+def test_list_fixer_converts_call_of_generator(fix_text):
+    new_text, _ = fix_text(
+        """\
+        a = list(x for x in y())
+        """
+    )
+    assert new_text == textwrap.dedent(
+        """\
+        a = [x for x in y()]
+        """
+    )
+
+
+def test_generator_comp_fixer_requires_exactly_one_arg(fix_text):
+    # these usages are syntactically valid but semantically incorrect
+    # however, the fixer should ignore them as "not my problem"
+    fix_text(
+        """\
+        a = set((x for x in y()), True)
+        b = list((x for x in y()), True)
+        """,
+        expect_changes=False,
+    )
