@@ -323,6 +323,9 @@ class SlypTransformer(libcst.CSTTransformer):
                 elements=[_convert_dict_element(arg) for arg in updated_node.args],
                 lpar=updated_node.lpar,
                 rpar=updated_node.rpar,
+                lbrace=libcst.LeftCurlyBrace(
+                    whitespace_after=updated_node.whitespace_before_args
+                ),
             )
             if not original_node.lpar:
                 return dict_node
@@ -937,5 +940,9 @@ def _convert_dict_element(arg: libcst.Arg) -> libcst.BaseDictElement:
         return libcst.DictElement(
             key=libcst.SimpleString(value=f'"{arg.keyword.value}"'),
             value=arg.value,
+            comma=arg.comma,
         )
-    return libcst.StarredDictElement(value=arg.value)
+    return libcst.StarredDictElement(
+        value=arg.value,
+        comma=arg.comma,
+    )
