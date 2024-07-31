@@ -1,17 +1,21 @@
 import textwrap
 
+import pytest
 
-def test_dict_call_fixer_converts_empty_call_to_empty_literal(fix_text):
-    new_text, _ = fix_text(
-        """\
-        x = dict()
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
-        x = {}
-        """
-    )
+
+@pytest.mark.parametrize(
+    "original_text, fixed_text",
+    [
+        ("dict()", "{}"),
+        ("list()", "[]"),
+        ("tuple()", "()"),
+    ],
+)
+def test_builtin_call_fixer_converts_empty_call_to_empty_literal(
+    fix_text, original_text, fixed_text
+):
+    new_text, _ = fix_text(f"x = {original_text}")
+    assert new_text == f"x = {fixed_text}"
 
 
 def test_dict_call_fixer_converts_kwargs_to_quoted_keys(fix_text):

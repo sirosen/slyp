@@ -336,6 +336,28 @@ class SlypTransformer(libcst.CSTTransformer):
                 return dict_node
             return self.modify_parenthesized_node(original_node, dict_node)
 
+        # match a 'tuple()' or 'list()' call with no arguments
+        if libcst.matchers.matches(
+            original_node,
+            libcst.matchers.Call(
+                func=libcst.matchers.Name("tuple") | libcst.matchers.Name("list"),
+                args=[],
+            ),
+        ):
+            funcname = original_node.func.value  # type: ignore[attr-defined]
+            literal_node: libcst.Set | libcst.List
+            if funcname == "tuple":
+                lpar = updated_node.lpar if updated_node.lpar else [libcst.LeftParen()]
+                rpar = updated_node.rpar if updated_node.rpar else [libcst.RightParen()]
+                literal_node = libcst.Tuple(elements=[], lpar=lpar, rpar=rpar)
+            elif funcname == "list":
+                literal_node = libcst.List(
+                    elements=[], lpar=updated_node.lpar, rpar=updated_node.rpar
+                )
+            if not original_node.lpar:
+                return literal_node
+            return self.modify_parenthesized_node(original_node, literal_node)
+
         # match a 'set()' or 'list()' call whose only argument is a generator expression
         if libcst.matchers.matches(
             original_node,
