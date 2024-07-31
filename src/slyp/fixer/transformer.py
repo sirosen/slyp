@@ -345,7 +345,7 @@ class SlypTransformer(libcst.CSTTransformer):
             ),
         ):
             funcname = original_node.func.value  # type: ignore[attr-defined]
-            literal_node: libcst.Set | libcst.List
+            literal_node: libcst.Tuple | libcst.List
             if funcname == "tuple":
                 lpar = updated_node.lpar if updated_node.lpar else [libcst.LeftParen()]
                 rpar = updated_node.rpar if updated_node.rpar else [libcst.RightParen()]
