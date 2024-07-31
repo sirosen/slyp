@@ -1,6 +1,16 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+- New autofixing behavior has been added, inspired by the rules of
+  flake8-comprehensions. The following autofixing behaviors are newly
+  added:
+  - Calls to `dict()`, `list()`, and `tuple()` with no arguments are replaced
+    with the relevant literals, `{}`, `[]`, and `()`
+  - Calls to `set()` and `list()` on generator expressions are converted to set
+    and list comprehensions
+  - Calls to `dict()` with keyword arguments are converted to dict literal
+    syntax, e.g. `dict(x=1)` becomes `{"x": 1}`
+
 # 0.6.1
 
 - Enable autofixing of some concatenated strings which combine f-strings with

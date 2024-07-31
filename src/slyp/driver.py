@@ -19,7 +19,7 @@ from slyp.hashable_file import HashableFile
 from slyp.result import Message, Result
 
 DEFAULT_DISABLED_CODES: set[str] = {"W201", "W202", "W203"}
-CONTRACT_VERSION: str = "1.4"
+CONTRACT_VERSION: str = "1.5"
 
 
 def driver_main(args: argparse.Namespace) -> bool:
