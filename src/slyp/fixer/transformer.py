@@ -1013,6 +1013,7 @@ def _convert_dict_element(arg: libcst.Arg) -> libcst.BaseDictElement:
         )
     return libcst.StarredDictElement(
         value=arg.value,
+        comma=arg.comma,
     )
 
 
