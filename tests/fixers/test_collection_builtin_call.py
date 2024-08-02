@@ -85,12 +85,19 @@ def test_dict_call_fixer_handles_nested_calls(fix_text):
 
 
 def test_dict_call_fixer_preserves_the_simplest_whitespace(fix_text):
+    # check a case with and without a trailing comma
     new_text, _ = fix_text(
         """\
         a = dict(
             x=dict(
                 y=2,
             ),
+            z=dict(
+                snork="hi"
+            ),
+            p=dict(
+
+            )
         )
         """
     )
@@ -100,6 +107,12 @@ def test_dict_call_fixer_preserves_the_simplest_whitespace(fix_text):
             "x": {
                 "y": 2,
             },
+            "z": {
+                "snork": "hi"
+            },
+            "p": {
+
+            }
         }
         """
     )
