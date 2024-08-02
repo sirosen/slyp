@@ -160,6 +160,10 @@ class FindEquivalentBranchesVisitor(ErrorRecordingVisitor):
     #
     # others? what about bool ops like `foo() or foo()`?
     def _record(self, node: ast.AST, result: CompareResult) -> None:
+        if not hasattr(node, "lineno"):
+            raise ValueError(
+                f"Attempted to record error on node with no 'lineno': {node}"
+            )
         self.errors.add((node.lineno, self.filename, result_to_code(result)))
 
     def visit_Try(self, node: ast.Try) -> None:
