@@ -212,14 +212,14 @@ def test_lambdas_and_yields_with_many_parens(fix_text):
 def test_generator_expressions(fix_text):
     new_text, _ = fix_text(
         """\
-        a = list(x for x in foo())
+        a = foo(x for x in bar())
         b = foo((x for x in bar()), baz())
         c = foo(((x for x in bar())), baz())
         """
     )
     assert new_text == textwrap.dedent(
         """\
-        a = list(x for x in foo())
+        a = foo(x for x in bar())
         b = foo((x for x in bar()), baz())
         c = foo((x for x in bar()), baz())
         """

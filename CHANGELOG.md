@@ -1,6 +1,30 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+- New autofixing behavior has been added, inspired by the rules of
+  flake8-comprehensions. The following autofixing behaviors are newly
+  added:
+  - Calls to `dict()`, `list()`, and `tuple()` with no arguments are replaced
+    with the relevant literals, `{}`, `[]`, and `()`
+  - Calls to `set()` and `list()` on generator expressions are converted to set
+    and list comprehensions
+  - Calls to `dict()` with keyword arguments are converted to dict literal
+    syntax, e.g. `dict(x=1)` becomes `{"x": 1}`
+
+> NOTE
+> The new transformation can be unsafe in certain rare cases. Specifically, the
+> builtin names can be rebound to user-defined callables. This would
+> potentially result in the fixer converting a meaningful call to these
+> user-defined values.
+>
+> This can only occur if you rebind very well-known names,
+> e.g., `def dict(...): ...`
+>
+> Because there are no well-known cases in which such name shadowing is
+> important or essential, this is not considered a bug. Just don't shadow
+> these builtin names like that.
+> You can always disable fixing with comments for certain lines.
+
 # 0.6.1
 
 - Enable autofixing of some concatenated strings which combine f-strings with

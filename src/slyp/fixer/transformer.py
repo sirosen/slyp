@@ -178,7 +178,11 @@ class SlypTransformer(libcst.CSTTransformer):
         return max_offset + 1
 
     def modify_parenthesized_node(
-        self, original_node: PFN, updated_node: PFN, *, preserve_innermost: bool = False
+        self,
+        original_node: ParenFixNodeTypes,
+        updated_node: PFN,
+        *,
+        preserve_innermost: bool = False,
     ) -> PFN:
         num_parens_to_unwrap: int | None = None
         if not preserve_innermost:
@@ -306,7 +310,89 @@ class SlypTransformer(libcst.CSTTransformer):
 
     def leave_Call(
         self, original_node: libcst.Call, updated_node: libcst.Call
-    ) -> libcst.Call:
+    ) -> libcst.BaseExpression:
+        # match a 'dict()' call whose args can unpack to a dict literal
+        if libcst.matchers.matches(
+            original_node,
+            libcst.matchers.Call(
+                func=libcst.matchers.Name("dict"),
+                args=[
+                    libcst.matchers.ZeroOrMore(
+                        libcst.matchers.Arg(star="**")
+                        | libcst.matchers.Arg(keyword=libcst.matchers.Name())
+                    )
+                ],
+            ),
+        ):
+            dict_node = libcst.Dict(
+                elements=[_convert_dict_element(arg) for arg in updated_node.args],
+                lpar=updated_node.lpar,
+                rpar=updated_node.rpar,
+                lbrace=libcst.LeftCurlyBrace(
+                    whitespace_after=updated_node.whitespace_before_args
+                ),
+            )
+            if not original_node.lpar:
+                return dict_node
+            return self.modify_parenthesized_node(original_node, dict_node)
+
+        # match a 'tuple()' or 'list()' call with no arguments
+        if libcst.matchers.matches(
+            original_node,
+            libcst.matchers.Call(
+                func=libcst.matchers.Name("tuple") | libcst.matchers.Name("list"),
+                args=[],
+            ),
+        ):
+            funcname = original_node.func.value  # type: ignore[attr-defined]
+            literal_node: libcst.Tuple | libcst.List
+            if funcname == "tuple":
+                lpar = updated_node.lpar if updated_node.lpar else [libcst.LeftParen()]
+                rpar = updated_node.rpar if updated_node.rpar else [libcst.RightParen()]
+                literal_node = libcst.Tuple(elements=[], lpar=lpar, rpar=rpar)
+            elif funcname == "list":
+                literal_node = libcst.List(
+                    elements=[], lpar=updated_node.lpar, rpar=updated_node.rpar
+                )
+            if not original_node.lpar:
+                return literal_node
+            return self.modify_parenthesized_node(original_node, literal_node)
+
+        # match a 'set()' or 'list()' call whose only argument is a generator expression
+        if libcst.matchers.matches(
+            original_node,
+            libcst.matchers.Call(
+                func=libcst.matchers.Name("set") | libcst.matchers.Name("list"),
+                args=[
+                    libcst.matchers.Arg(
+                        star="", keyword=None, value=libcst.matchers.GeneratorExp()
+                    )
+                ],
+            ),
+        ):
+            genexp: libcst.GeneratorExp = updated_node.args[
+                0
+            ].value  # type: ignore[assignment]
+            funcname = original_node.func.value  # type: ignore[attr-defined]
+            comp_node: libcst.SetComp | libcst.ListComp
+            if funcname == "set":
+                comp_node = libcst.SetComp(
+                    elt=genexp.elt,
+                    for_in=genexp.for_in,
+                    lpar=updated_node.lpar,
+                    rpar=updated_node.rpar,
+                )
+            elif funcname == "list":
+                comp_node = libcst.ListComp(
+                    elt=genexp.elt,
+                    for_in=genexp.for_in,
+                    lpar=updated_node.lpar,
+                    rpar=updated_node.rpar,
+                )
+            if not original_node.lpar:
+                return comp_node
+            return self.modify_parenthesized_node(original_node, comp_node)
+
         if not original_node.lpar:
             return updated_node
         return self.modify_parenthesized_node(original_node, updated_node)
@@ -908,4 +994,21 @@ def _make_paren_whitespace(
         ),
         indent=True,
         last_line=libcst.SimpleWhitespace(value=last_line_spacing),
+    )
+
+
+def _convert_dict_element(arg: libcst.Arg) -> libcst.BaseDictElement:
+    if arg.star == "":
+        if not arg.keyword:
+            raise ValueError(
+                "Cannot convert dict arg which is non-splatted, non-keyword"
+            )
+        return libcst.DictElement(
+            key=libcst.SimpleString(value=f'"{arg.keyword.value}"'),
+            value=arg.value,
+            comma=arg.comma,
+        )
+    return libcst.StarredDictElement(
+        value=arg.value,
+        comma=arg.comma,
     )
