@@ -331,6 +331,9 @@ class SlypTransformer(libcst.CSTTransformer):
                 lbrace=libcst.LeftCurlyBrace(
                     whitespace_after=updated_node.whitespace_before_args
                 ),
+                rbrace=libcst.RightCurlyBrace(
+                    whitespace_before=_last_arg_whitespace(updated_node)
+                ),
             )
             if not original_node.lpar:
                 return dict_node
@@ -1012,3 +1015,9 @@ def _convert_dict_element(arg: libcst.Arg) -> libcst.BaseDictElement:
         value=arg.value,
         comma=arg.comma,
     )
+
+
+def _last_arg_whitespace(node: libcst.Call) -> libcst.BaseParenthesizableWhitespace:
+    if not node.args:
+        return libcst.SimpleWhitespace("")
+    return node.args[-1].whitespace_after_arg

@@ -85,12 +85,18 @@ def test_dict_call_fixer_handles_nested_calls(fix_text):
 
 
 def test_dict_call_fixer_preserves_the_simplest_whitespace(fix_text):
+    # trailing comma whitespace + leading whitespace is the simple case
+    # because the trailing comma carries the whitespace info, it's easy to
+    # preserve by just keeping the comma intact
     new_text, _ = fix_text(
         """\
         a = dict(
             x=dict(
                 y=2,
             ),
+            z=dict(
+                **p,
+            )
         )
         """
     )
@@ -100,6 +106,47 @@ def test_dict_call_fixer_preserves_the_simplest_whitespace(fix_text):
             "x": {
                 "y": 2,
             },
+            "z": {
+                **p,
+            }
+        }
+        """
+    )
+
+
+def test_dict_call_fixer_preserves_intricate_whitespace(fix_text):
+    # no trailing comma, or empty block are more intricate cases
+    # we need to find the whitespace which is attached to the last arg
+    # and reattach it to the rbrace
+    new_text, _ = fix_text(
+        """\
+        a = dict(
+            x=dict(
+                    y="hi"
+            ),
+            z=dict(
+
+            ),
+            p=dict(
+
+                **q
+        )
+        )
+        """
+    )
+    assert new_text == textwrap.dedent(
+        """\
+        a = {
+            "x": {
+                    "y": "hi"
+            },
+            "z": {
+
+            },
+            "p": {
+
+                **q
+        }
         }
         """
     )
