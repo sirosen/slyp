@@ -106,6 +106,16 @@ CollectionLiteralNode = t.TypeVar(
 )
 
 
+NAME_OF_ITERABLE_BUILTIN = (
+    libcst.matchers.Name("sorted")
+    | libcst.matchers.Name("reversed")
+    | libcst.matchers.Name("list")
+    | libcst.matchers.Name("set")
+    | libcst.matchers.Name("frozenset")
+    | libcst.matchers.Name("tuple")
+)
+
+
 class SlypTransformer(libcst.CSTTransformer):
     METADATA_DEPENDENCIES = (
         libcst.metadata.PositionProvider,
@@ -311,9 +321,21 @@ class SlypTransformer(libcst.CSTTransformer):
     def leave_Call(
         self, original_node: libcst.Call, updated_node: libcst.Call
     ) -> libcst.BaseExpression:
+        if not updated_node.lpar and not libcst.matchers.matches(
+            updated_node,
+            libcst.matchers.Call(
+                func=libcst.matchers.Name("dict")
+                | libcst.matchers.Name("list")
+                | libcst.matchers.Name("tuple")
+                | libcst.matchers.Name("set")
+                | libcst.matchers.Name("frozenset")
+            ),
+        ):
+            return updated_node
+
         # match a 'dict()' call whose args can unpack to a dict literal
         if libcst.matchers.matches(
-            original_node,
+            updated_node,
             libcst.matchers.Call(
                 func=libcst.matchers.Name("dict"),
                 args=[
@@ -335,13 +357,13 @@ class SlypTransformer(libcst.CSTTransformer):
                     whitespace_before=_last_arg_whitespace(updated_node)
                 ),
             )
-            if not original_node.lpar:
+            if not dict_node.lpar:
                 return dict_node
             return self.modify_parenthesized_node(original_node, dict_node)
 
         # match a 'tuple()' or 'list()' call with no arguments
         if libcst.matchers.matches(
-            original_node,
+            updated_node,
             libcst.matchers.Call(
                 func=libcst.matchers.Name("tuple") | libcst.matchers.Name("list"),
                 args=[],
@@ -357,13 +379,13 @@ class SlypTransformer(libcst.CSTTransformer):
                 literal_node = libcst.List(
                     elements=[], lpar=updated_node.lpar, rpar=updated_node.rpar
                 )
-            if not original_node.lpar:
+            if not literal_node.lpar:
                 return literal_node
             return self.modify_parenthesized_node(original_node, literal_node)
 
         # match a 'set()' or 'list()' call whose only argument is a generator expression
         if libcst.matchers.matches(
-            original_node,
+            updated_node,
             libcst.matchers.Call(
                 func=libcst.matchers.Name("set") | libcst.matchers.Name("list"),
                 args=[
@@ -392,11 +414,38 @@ class SlypTransformer(libcst.CSTTransformer):
                     lpar=updated_node.lpar,
                     rpar=updated_node.rpar,
                 )
-            if not original_node.lpar:
+            if not comp_node.lpar:
                 return comp_node
             return self.modify_parenthesized_node(original_node, comp_node)
 
-        if not original_node.lpar:
+        # 'set(X(...))' where `X` is a known function call which produces an iterator
+        if libcst.matchers.matches(
+            updated_node,
+            libcst.matchers.Call(
+                func=libcst.matchers.Name("set") | libcst.matchers.Name("frozenset"),
+                args=[
+                    libcst.matchers.Arg(
+                        star="",
+                        keyword=None,
+                        value=libcst.matchers.Call(func=NAME_OF_ITERABLE_BUILTIN),
+                    )
+                ],
+            ),
+        ):
+            arg0: libcst.Call = updated_node.args[0].value  # type:ignore[attr-defined]
+            if not arg0.args:
+                # if we are seeing no args, like `set(set())`, that's just `set()`
+                updated_node = updated_node.with_changes(args=[])
+            else:
+                # otherwise, we only need to preserve the first arg
+                # `set(sorted(X, reversed=True))` => `set(X)`
+                arg0_arg0: libcst.Arg = arg0.args[0]
+                updated_node = updated_node.with_changes(
+                    # use a new Arg to discard any comma and whitespace
+                    args=[libcst.Arg(value=arg0_arg0.value)],
+                )
+
+        if not updated_node.lpar:
             return updated_node
         return self.modify_parenthesized_node(original_node, updated_node)
 
