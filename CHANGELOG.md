@@ -14,6 +14,9 @@
   - Calls to `set()` and `frozenset()` whose argument is a builtin which
     produces an iterable are unwrapped.
     e.g., `set(list(foo()))` becomes `set(foo())`
+  - Calls to `list()` whose argument is a builtin which produces a `list` are
+    unwrapped.
+    e.g., `list(sorted(foo))` becomes `sorted(foo)`
 
 > NOTE
 > The new transformation can be unsafe in certain rare cases. Specifically, the
