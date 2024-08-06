@@ -237,3 +237,32 @@ def test_nested_iterable_calls_under_set_work(fix_text):
         set()
         """
     )
+
+
+@pytest.mark.parametrize(
+    "expression, unwrapped",
+    (
+        ("list(foo)", "foo"),
+        ("list(list(foo))", "foo"),
+        ("tuple(foo)", "foo"),
+        ("tuple(list(tuple(foo)))", "foo"),
+    ),
+)
+def test_order_preserving_iterable_call_under_list_call_is_unwrapped(
+    fix_text, expression, unwrapped
+):
+    new_text, _ = fix_text(f"list({expression})")
+    assert new_text == f"list({unwrapped})"
+
+
+@pytest.mark.parametrize(
+    "expression",
+    (
+        "reversed(foo)",
+        "sorted(foo)",
+        "sorted(foo, key=lambda x: x[0])",
+    ),
+)
+def test_reordering_list_call_under_list_call_bubbles_up(fix_text, expression):
+    new_text, _ = fix_text(f"list({expression})")
+    assert new_text == expression

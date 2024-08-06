@@ -381,6 +381,37 @@ class SlypTransformer(libcst.CSTTransformer):
     def _fix_list_call(
         self, original_node: libcst.Call, updated_node: libcst.Call
     ) -> libcst.Call | libcst.List | libcst.ListComp:
+        # 'list(X(...))' where `X` is a known function call which produces a list
+        # already
+        # OR where `X` is `tuple`
+        # (which is interesting because it does not transform order)
+        #
+        # this fix is run in a loop to repeatedly unnest expressions
+        # thus fixing cases like `list(list(sorted(foo))`
+        while libcst.matchers.matches(
+            updated_node,
+            libcst.matchers.Call(
+                func=libcst.matchers.Name("list"),
+                args=[
+                    libcst.matchers.Arg(
+                        star="",
+                        keyword=None,
+                        value=libcst.matchers.Call(
+                            func=libcst.matchers.Name("list")
+                            | libcst.matchers.Name("reversed")
+                            | libcst.matchers.Name("sorted")
+                            | libcst.matchers.Name("tuple")
+                        ),
+                    )
+                ],
+            ),
+        ):
+            arg0: libcst.Call = updated_node.args[0].value  # type: ignore[assignment]
+            if arg0.func.value == "tuple":  # type: ignore[attr-defined]
+                updated_node = updated_node.with_changes(args=arg0.args)
+            else:
+                updated_node = updated_node.with_changes(func=arg0.func, args=arg0.args)
+
         # a 'list()' call with no arguments
         if libcst.matchers.matches(
             updated_node,
