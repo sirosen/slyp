@@ -5,11 +5,15 @@
   flake8-comprehensions. The following autofixing behaviors are newly
   added:
   - Calls to `dict()`, `list()`, and `tuple()` with no arguments are replaced
-    with the relevant literals, `{}`, `[]`, and `()`
+    with the relevant literals, `{}`, `[]`, and `()`.
   - Calls to `set()` and `list()` on generator expressions are converted to set
-    and list comprehensions
+    and list comprehensions.
   - Calls to `dict()` with keyword arguments are converted to dict literal
-    syntax, e.g. `dict(x=1)` becomes `{"x": 1}`
+    syntax.
+    e.g., `dict(x=1)` becomes `{"x": 1}`
+  - Calls to `set()` and `frozenset()` whose argument is a builtin which
+    produces an iterable are unwrapped.
+    e.g., `set(list(foo()))` becomes `set(foo())`
 
 > NOTE
 > The new transformation can be unsafe in certain rare cases. Specifically, the

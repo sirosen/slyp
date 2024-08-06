@@ -188,3 +188,52 @@ def test_generator_comp_fixer_requires_exactly_one_arg(fix_text):
         """,
         expect_changes=False,
     )
+
+
+@pytest.mark.parametrize("set_variant", ("set", "frozenset"))
+@pytest.mark.parametrize(
+    "expression, unwrapped",
+    (
+        ("set(foo)", "foo"),
+        ("list(foo)", "foo"),
+        ("sorted(foo)", "foo"),
+        ("sorted(foo, reversed=True)", "foo"),
+        ("reversed(foo)", "foo"),
+        ("tuple(foo)", "foo"),
+        ("set(tuple(foo))", "foo"),
+        ("set()", ""),
+        ("list()", ""),
+        ("tuple()", ""),
+        ("[]", ""),
+        ("()", ""),
+        ("{}", ""),  # dict literal is an empty iterator too
+        ("frozenset(alpha)", "alpha"),
+        ("set(frozenset(alpha))", "alpha"),
+        ("list(list(alpha))", "alpha"),
+        ("list(sorted(foo))", "foo"),
+        ("reversed(reversed(sorted(foo)))", "foo"),
+        # TODO: refine `set()` conversions to turn this into
+        # a set literal: 'set((x, y))' => '{x, y}'
+        ("set(tuple(tuple((x, y))))", "(x, y)"),
+    ),
+)
+def test_iterable_call_under_set_call_is_unwrapped(
+    fix_text, set_variant, expression, unwrapped
+):
+    new_text, _ = fix_text(f"{set_variant}({expression})")
+    assert new_text == f"{set_variant}({unwrapped})"
+
+
+def test_nested_iterable_calls_under_set_work(fix_text):
+    new_text, _ = fix_text(
+        """\
+        set(tuple())
+        set(list())
+        """
+    )
+    assert new_text == textwrap.dedent(
+        """\
+        set()
+        set()
+        """
+    )
