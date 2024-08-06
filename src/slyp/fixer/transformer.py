@@ -321,7 +321,10 @@ class SlypTransformer(libcst.CSTTransformer):
     def leave_Call(
         self, original_node: libcst.Call, updated_node: libcst.Call
     ) -> libcst.BaseExpression:
-        if not updated_node.lpar and not libcst.matchers.matches(
+        if original_node.lpar:
+            updated_node = self.modify_parenthesized_node(original_node, updated_node)
+
+        if not libcst.matchers.matches(
             updated_node,
             libcst.matchers.Call(
                 func=libcst.matchers.Name("dict")
@@ -333,8 +336,22 @@ class SlypTransformer(libcst.CSTTransformer):
         ):
             return updated_node
 
+        if original_node.func.value == "dict":
+            return self._fix_dict_call(original_node, updated_node)
+        elif original_node.func.value == "list":
+            return self._fix_list_call(original_node, updated_node)
+        elif original_node.func.value == "tuple":
+            return self._fix_tuple_call(original_node, updated_node)
+        elif original_node.func.value in ("set", "frozenset"):
+            return self._fix_set_call(original_node, updated_node)
+        else:
+            return updated_node
+
+    def _fix_dict_call(
+        self, original_node: libcst.Call, updated_node: libcst.Call
+    ) -> libcst.Call | libcst.Dict:
         # match a 'dict()' call whose args can unpack to a dict literal
-        if libcst.matchers.matches(
+        if not libcst.matchers.matches(
             updated_node,
             libcst.matchers.Call(
                 func=libcst.matchers.Name("dict"),
@@ -346,48 +363,40 @@ class SlypTransformer(libcst.CSTTransformer):
                 ],
             ),
         ):
-            dict_node = libcst.Dict(
-                elements=[_convert_dict_element(arg) for arg in updated_node.args],
-                lpar=updated_node.lpar,
-                rpar=updated_node.rpar,
-                lbrace=libcst.LeftCurlyBrace(
-                    whitespace_after=updated_node.whitespace_before_args
-                ),
-                rbrace=libcst.RightCurlyBrace(
-                    whitespace_before=_last_arg_whitespace(updated_node)
-                ),
-            )
-            if not dict_node.lpar:
-                return dict_node
-            return self.modify_parenthesized_node(original_node, dict_node)
+            return updated_node
 
-        # match a 'tuple()' or 'list()' call with no arguments
+        return libcst.Dict(
+            elements=[_convert_dict_element(arg) for arg in updated_node.args],
+            lpar=updated_node.lpar,
+            rpar=updated_node.rpar,
+            lbrace=libcst.LeftCurlyBrace(
+                whitespace_after=updated_node.whitespace_before_args
+            ),
+            rbrace=libcst.RightCurlyBrace(
+                whitespace_before=_last_arg_whitespace(updated_node)
+            ),
+        )
+
+    def _fix_list_call(
+        self, original_node: libcst.Call, updated_node: libcst.Call
+    ) -> libcst.Call | libcst.List | libcst.ListComp:
+        # a 'list()' call with no arguments
         if libcst.matchers.matches(
             updated_node,
             libcst.matchers.Call(
-                func=libcst.matchers.Name("tuple") | libcst.matchers.Name("list"),
+                func=libcst.matchers.Name("list"),
                 args=[],
             ),
         ):
-            funcname = original_node.func.value  # type: ignore[attr-defined]
-            literal_node: libcst.Tuple | libcst.List
-            if funcname == "tuple":
-                lpar = updated_node.lpar if updated_node.lpar else [libcst.LeftParen()]
-                rpar = updated_node.rpar if updated_node.rpar else [libcst.RightParen()]
-                literal_node = libcst.Tuple(elements=[], lpar=lpar, rpar=rpar)
-            elif funcname == "list":
-                literal_node = libcst.List(
-                    elements=[], lpar=updated_node.lpar, rpar=updated_node.rpar
-                )
-            if not literal_node.lpar:
-                return literal_node
-            return self.modify_parenthesized_node(original_node, literal_node)
+            return libcst.List(
+                elements=[], lpar=updated_node.lpar, rpar=updated_node.rpar
+            )
 
-        # match a 'set()' or 'list()' call whose only argument is a generator expression
+        # a 'list()' call whose only argument is a generator expression
         if libcst.matchers.matches(
             updated_node,
             libcst.matchers.Call(
-                func=libcst.matchers.Name("set") | libcst.matchers.Name("list"),
+                func=libcst.matchers.Name("list"),
                 args=[
                     libcst.matchers.Arg(
                         star="", keyword=None, value=libcst.matchers.GeneratorExp()
@@ -398,28 +407,42 @@ class SlypTransformer(libcst.CSTTransformer):
             genexp: libcst.GeneratorExp = updated_node.args[
                 0
             ].value  # type: ignore[assignment]
-            funcname = original_node.func.value  # type: ignore[attr-defined]
-            comp_node: libcst.SetComp | libcst.ListComp
-            if funcname == "set":
-                comp_node = libcst.SetComp(
-                    elt=genexp.elt,
-                    for_in=genexp.for_in,
-                    lpar=updated_node.lpar,
-                    rpar=updated_node.rpar,
-                )
-            elif funcname == "list":
-                comp_node = libcst.ListComp(
-                    elt=genexp.elt,
-                    for_in=genexp.for_in,
-                    lpar=updated_node.lpar,
-                    rpar=updated_node.rpar,
-                )
-            if not comp_node.lpar:
-                return comp_node
-            return self.modify_parenthesized_node(original_node, comp_node)
+            return libcst.ListComp(
+                elt=genexp.elt,
+                for_in=genexp.for_in,
+                lpar=updated_node.lpar,
+                rpar=updated_node.rpar,
+            )
 
-        # 'set(X(...))' where `X` is a known function call which produces an iterator
+        return updated_node
+
+    def _fix_tuple_call(
+        self, original_node: libcst.Call, updated_node: libcst.Call
+    ) -> libcst.Call | libcst.Tuple:
+        # a 'list()' call with no arguments
         if libcst.matchers.matches(
+            updated_node,
+            libcst.matchers.Call(
+                func=libcst.matchers.Name("tuple"),
+                args=[],
+            ),
+        ):
+            lpar = updated_node.lpar if updated_node.lpar else [libcst.LeftParen()]
+            rpar = updated_node.rpar if updated_node.rpar else [libcst.RightParen()]
+            return libcst.Tuple(elements=[], lpar=lpar, rpar=rpar)
+
+        return updated_node
+
+    def _fix_set_call(
+        self, original_node: libcst.Call, updated_node: libcst.Call
+    ) -> libcst.Call | libcst.SetComp:
+        """accepts `set()` and `frozenset()` calls"""
+        # 'set(X(...))' where `X` is a known function call which produces an iterator
+        # or 'frozenset(X(...))'
+        #
+        # this fix is run in a loop to repeatedly unnest expressions
+        # thus fixing cases like `set(reversed(sorted(foo)))`
+        while libcst.matchers.matches(
             updated_node,
             libcst.matchers.Call(
                 func=libcst.matchers.Name("set") | libcst.matchers.Name("frozenset"),
@@ -445,9 +468,51 @@ class SlypTransformer(libcst.CSTTransformer):
                     args=[libcst.Arg(value=arg0_arg0.value)],
                 )
 
-        if not updated_node.lpar:
-            return updated_node
-        return self.modify_parenthesized_node(original_node, updated_node)
+        # a 'set()' call whose only argument is a generator expression
+        if libcst.matchers.matches(
+            updated_node,
+            libcst.matchers.Call(
+                func=libcst.matchers.Name("set"),
+                args=[
+                    libcst.matchers.Arg(
+                        star="", keyword=None, value=libcst.matchers.GeneratorExp()
+                    )
+                ],
+            ),
+        ):
+            genexp: libcst.GeneratorExp = updated_node.args[
+                0
+            ].value  # type: ignore[assignment]
+            return libcst.SetComp(
+                elt=genexp.elt,
+                for_in=genexp.for_in,
+                lpar=updated_node.lpar,
+                rpar=updated_node.rpar,
+            )
+
+        # a 'set()' call whose only argument is an empty collection literal should
+        # be an empty call
+        # (or a 'frozenset()' call)
+        #
+        # e.g.  'set([])' => 'set()'
+        if libcst.matchers.matches(
+            updated_node,
+            libcst.matchers.Call(
+                func=libcst.matchers.Name("set") | libcst.matchers.Name("frozenset"),
+                args=[
+                    libcst.matchers.Arg(
+                        star="",
+                        keyword=None,
+                        value=libcst.matchers.Tuple(elements=[])
+                        | libcst.matchers.List(elements=[])
+                        | libcst.matchers.Dict(elements=[]),
+                    )
+                ],
+            ),
+        ):
+            return updated_node.with_changes(args=[])
+
+        return updated_node
 
     def leave_Arg(
         self, original_node: libcst.Arg, updated_node: libcst.Arg

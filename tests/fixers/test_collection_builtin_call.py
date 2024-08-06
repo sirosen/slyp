@@ -202,7 +202,19 @@ def test_generator_comp_fixer_requires_exactly_one_arg(fix_text):
         ("tuple(foo)", "foo"),
         ("set(tuple(foo))", "foo"),
         ("set()", ""),
-        ("frozenset()", ""),
+        ("list()", ""),
+        ("tuple()", ""),
+        ("[]", ""),
+        ("()", ""),
+        ("{}", ""),  # dict literal is an empty iterator too
+        ("frozenset(alpha)", "alpha"),
+        ("set(frozenset(alpha))", "alpha"),
+        ("list(list(alpha))", "alpha"),
+        ("list(sorted(foo))", "foo"),
+        ("reversed(reversed(sorted(foo)))", "foo"),
+        # TODO: refine `set()` conversions to turn this into
+        # a set literal: 'set((x, y))' => '{x, y}'
+        ("set(tuple(tuple((x, y))))", "(x, y)"),
     ),
 )
 def test_iterable_call_under_set_call_is_unwrapped(
@@ -213,8 +225,6 @@ def test_iterable_call_under_set_call_is_unwrapped(
 
 
 def test_nested_iterable_calls_under_set_work(fix_text):
-    # this is a regression test for a bug in which testing on the `original_node` led
-    # to an incorrect conclusion being drawn about the `updated_node`
     new_text, _ = fix_text(
         """\
         set(tuple())
@@ -223,7 +233,7 @@ def test_nested_iterable_calls_under_set_work(fix_text):
     )
     assert new_text == textwrap.dedent(
         """\
-        set(())
-        set([])
+        set()
+        set()
         """
     )
