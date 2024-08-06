@@ -336,13 +336,14 @@ class SlypTransformer(libcst.CSTTransformer):
         ):
             return updated_node
 
-        if original_node.func.value == "dict":
+        func_name: str = original_node.func.value  # type: ignore[attr-defined]
+        if func_name == "dict":
             return self._fix_dict_call(original_node, updated_node)
-        elif original_node.func.value == "list":
+        elif func_name == "list":
             return self._fix_list_call(original_node, updated_node)
-        elif original_node.func.value == "tuple":
+        elif func_name == "tuple":
             return self._fix_tuple_call(original_node, updated_node)
-        elif original_node.func.value in ("set", "frozenset"):
+        elif func_name in ("set", "frozenset"):
             return self._fix_set_call(original_node, updated_node)
         else:
             return updated_node
@@ -455,7 +456,7 @@ class SlypTransformer(libcst.CSTTransformer):
                 ],
             ),
         ):
-            arg0: libcst.Call = updated_node.args[0].value  # type:ignore[attr-defined]
+            arg0: libcst.Call = updated_node.args[0].value  # type: ignore[assignment]
             if not arg0.args:
                 # if we are seeing no args, like `set(set())`, that's just `set()`
                 updated_node = updated_node.with_changes(args=[])
