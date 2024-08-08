@@ -1,6 +1,8 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
 
+# 0.7.0
+
 - New autofixing behavior has been added, inspired by the rules of
   flake8-comprehensions. The following autofixing behaviors are newly
   added:
