@@ -119,6 +119,43 @@ def test_paren_insertion_in_collection_literal(fix_text, open_delim, close_delim
 @pytest.mark.parametrize(
     "open_delim, close_delim", (("(", ")"), ("[", "]"), ("{", "}"))
 )
+@pytest.mark.parametrize(
+    "outer_open_delim, outer_close_delim", (("(", ")"), ("[", "]"))
+)
+def test_paren_insertion_in_nested_collection_literal(
+    fix_text, open_delim, close_delim, outer_open_delim, outer_close_delim
+):
+    new_text, _ = fix_text(
+        f"""\
+        {outer_open_delim}
+            {open_delim}
+                "foo"
+                "bar",
+                "baz"
+            {close_delim},
+            "buzz",
+        {outer_close_delim}
+        """
+    )
+    assert new_text == textwrap.dedent(
+        f"""\
+        {outer_open_delim}
+            {open_delim}
+                (
+                    "foo"
+                    "bar"
+                ),
+                "baz"
+            {close_delim},
+            "buzz",
+        {outer_close_delim}
+        """
+    )
+
+
+@pytest.mark.parametrize(
+    "open_delim, close_delim", (("(", ")"), ("[", "]"), ("{", "}"))
+)
 def test_paren_insertion_in_collection_is_noop_on_solo_string(
     fix_text, open_delim, close_delim
 ):
