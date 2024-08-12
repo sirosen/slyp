@@ -234,7 +234,6 @@ class SlypTransformer(libcst.CSTTransformer):
     def refold_and_parenthesize_str_concat_node(
         self,
         node: libcst.ConcatenatedString,
-        relative_indent: int = 4,
     ) -> libcst.ConcatenatedString:
         """given a concatenated string node, add parens and "refold" the whitespace"""
         # build a list of concatenated string nodes (unroll the recursive structure)
@@ -245,6 +244,8 @@ class SlypTransformer(libcst.CSTTransformer):
             concat_nodes.append(cur)
             cur = cur.right
         concat_nodes.append(cur)
+
+        base_indent = max(_find_max_indent_of_concat_node(concat_nodes), 4) + 4
 
         # walk the list in reverse, updating the whitespace between the nodes and
         # "clipping them back together" (hence the reversal here, maintaining the
@@ -259,7 +260,7 @@ class SlypTransformer(libcst.CSTTransformer):
                 comment = cur.whitespace_between.first_line.comment  # type: ignore[attr-defined]  # noqa: E501
             concat_nodes[idx] = cur.with_changes(
                 whitespace_between=_make_paren_whitespace(
-                    " " * (relative_indent + 4), comment=comment
+                    " " * base_indent, comment=comment
                 ),
                 right=concat_nodes[idx + 1],
             )
@@ -267,12 +268,12 @@ class SlypTransformer(libcst.CSTTransformer):
         return concat_nodes[0].with_changes(  # type: ignore[return-value]
             lpar=[
                 libcst.LeftParen(
-                    whitespace_after=_make_paren_whitespace(" " * (relative_indent + 4))
+                    whitespace_after=_make_paren_whitespace(" " * base_indent)
                 )
             ],
             rpar=[
                 libcst.RightParen(
-                    whitespace_before=_make_paren_whitespace(" " * relative_indent)
+                    whitespace_before=_make_paren_whitespace(" " * (base_indent - 4))
                 )
             ],
         )
@@ -1167,3 +1168,17 @@ def _last_arg_whitespace(node: libcst.Call) -> libcst.BaseParenthesizableWhitesp
     if not node.args:
         return libcst.SimpleWhitespace("")
     return node.args[-1].whitespace_after_arg
+
+
+def _find_max_indent_of_concat_node(nodes: list[libcst.BaseString]) -> int:
+    max_ = 0
+    for node in nodes:
+        if not isinstance(node, libcst.ConcatenatedString):
+            continue
+        ws_between = node.whitespace_between
+        if not (hasattr(ws_between, "indent") and ws_between.indent):
+            continue
+        if not isinstance(ws_between, libcst.ParenthesizedWhitespace):
+            continue
+        max_ = max(max_, len(ws_between.last_line.value))
+    return max_
