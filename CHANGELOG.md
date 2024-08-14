@@ -1,5 +1,7 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
+
+# 0.7.1
 - Fix a bug in which `list(reversed(foo))` was transformed to `reversed(foo)`.
 - Improve the handling of whitespace when wrapping concatenated strings
 
