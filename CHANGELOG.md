@@ -1,5 +1,6 @@
 # Unreleased
 <!-- changelog-unreleased-marker -->
+- Fix a bug in which `list(reversed(foo))` was transformed to `reversed(foo)`.
 
 # 0.7.0
 

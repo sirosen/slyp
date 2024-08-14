@@ -258,7 +258,6 @@ def test_order_preserving_iterable_call_under_list_call_is_unwrapped(
 @pytest.mark.parametrize(
     "expression",
     (
-        "reversed(foo)",
         "sorted(foo)",
         "sorted(foo, key=lambda x: x[0])",
     ),
@@ -266,3 +265,16 @@ def test_order_preserving_iterable_call_under_list_call_is_unwrapped(
 def test_reordering_list_call_under_list_call_bubbles_up(fix_text, expression):
     new_text, _ = fix_text(f"list({expression})")
     assert new_text == expression
+
+
+@pytest.mark.parametrize(
+    "expression",
+    (
+        "list(reversed(foo))",
+        "tuple(reversed(foo))",
+    ),
+)
+def test_reversed_ordered_collection_is_preserved(fix_text, expression):
+    # confirm that a reverse-order iterator passed into an ordered collection type is
+    # preserved
+    fix_text(expression, expect_changes=False)

@@ -106,16 +106,6 @@ CollectionLiteralNode = t.TypeVar(
 )
 
 
-NAME_OF_ITERABLE_BUILTIN = (
-    libcst.matchers.Name("sorted")
-    | libcst.matchers.Name("reversed")
-    | libcst.matchers.Name("list")
-    | libcst.matchers.Name("set")
-    | libcst.matchers.Name("frozenset")
-    | libcst.matchers.Name("tuple")
-)
-
-
 class SlypTransformer(libcst.CSTTransformer):
     METADATA_DEPENDENCIES = (
         libcst.metadata.PositionProvider,
@@ -399,7 +389,6 @@ class SlypTransformer(libcst.CSTTransformer):
                         keyword=None,
                         value=libcst.matchers.Call(
                             func=libcst.matchers.Name("list")
-                            | libcst.matchers.Name("reversed")
                             | libcst.matchers.Name("sorted")
                             | libcst.matchers.Name("tuple")
                         ),
@@ -483,7 +472,14 @@ class SlypTransformer(libcst.CSTTransformer):
                     libcst.matchers.Arg(
                         star="",
                         keyword=None,
-                        value=libcst.matchers.Call(func=NAME_OF_ITERABLE_BUILTIN),
+                        value=libcst.matchers.Call(
+                            func=libcst.matchers.Name("sorted")
+                            | libcst.matchers.Name("reversed")
+                            | libcst.matchers.Name("list")
+                            | libcst.matchers.Name("set")
+                            | libcst.matchers.Name("frozenset")
+                            | libcst.matchers.Name("tuple")
+                        ),
                     )
                 ],
             ),
