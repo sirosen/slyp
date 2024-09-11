@@ -1,20 +1,20 @@
 from slyp.codes import generate_reference
 
-START_SLUG = "<!-- generate-reference-insert-start -->\n"
-END_SLUG = "<!-- generate-reference-insert-end -->\n"
+START_SLUG = ".. generate-reference-insert-start\n"
+END_SLUG = ".. generate-reference-insert-end\n"
 
 
 def main() -> None:
     print("update-generated-reference:BEGIN")
-    if update_readme():
+    if update_linter_rules():
         print("changes made")
     else:
         print("no changes made")
     print("update-generated-reference:END")
 
 
-def update_readme() -> bool:
-    with open("README.md", encoding="utf-8") as fp:
+def update_linter_rules() -> bool:
+    with open("docs/linter_rules.rst", encoding="utf-8") as fp:
         content = fp.readlines()
     new_content = []
 
@@ -34,7 +34,7 @@ def update_readme() -> bool:
     if new_content == content:
         return False
 
-    with open("README.md", "w", encoding="utf-8") as fp:
+    with open("docs/linter_rules.rst", "w", encoding="utf-8") as fp:
         fp.write("".join(new_content))
     return True
 

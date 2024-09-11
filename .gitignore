@@ -2,6 +2,7 @@ __pycache__
 .tox
 .venv
 build
+docs/_build/
 dist
 *.egg-info
 .coverage

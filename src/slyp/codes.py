@@ -106,7 +106,7 @@ E is for "error" (you should probably change this)
 
 W is for "warning" (you might want to change this)
 
-Some warnings are disabled by default; enable them with `--enable`.
+Some warnings are disabled by default; enable them with ``--enable``.
 """
     )
 
@@ -114,16 +114,17 @@ Some warnings are disabled by default; enable them with `--enable`.
         if code.hidden:
             continue
         yield ""
-        yield f"### {code.code}"
+        yield f"{code.code}"
+        yield f"{'-' * len(code.code)}"
         yield ""
         if code.default_disabled:
-            yield "_disabled by default_"
+            yield "*disabled by default*"
             yield ""
-        yield f"'{code.message}'"
+        yield f"{code.message}"
         yield ""
-        yield "```python"
-        yield code.example
-        yield "```"
+        yield ".. code-block:: python"
+        yield ""
+        yield textwrap.indent(code.example, "    ")
 
 
 def generate_reference() -> t.Iterator[str]:
