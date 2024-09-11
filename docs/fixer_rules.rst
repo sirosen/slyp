@@ -41,7 +41,7 @@ Convert Collection Builtin Calls to Literals
 
     This transformation can be harmful if you rebind builtin names like ``dict``.
 
-Builtings like ``dict``, ``list``, and ``set`` are converted to their relevant
+Builtins like ``dict``, ``list``, and ``set`` are converted to their relevant
 literal types.
 
 .. code-block:: diff
