@@ -7,6 +7,8 @@ An opinionated linter and fixer.
 [![PyPI - Version](https://img.shields.io/pypi/v/slyp.svg)](https://pypi.org/project/slyp)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/slyp.svg)](https://pypi.org/project/slyp)
 
+Full documentation: https://slyp.readthedocs.io/en/latest/index.html
+
 -----
 
 **Table of Contents**
