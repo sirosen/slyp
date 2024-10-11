@@ -34,7 +34,9 @@ def update_changelog(new_version):
         marker,
         f"""{marker}
 
-# {new_version}""",
+{new_version}
+{'-' * len(new_version)}
+""",
     )
     with open("changelog.rst", "w") as fp:
         fp.write(content)
