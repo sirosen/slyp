@@ -24,11 +24,11 @@ def replace_version(filename, prefix, old_version, new_version):
 
 
 def update_changelog(new_version):
-    print("updating CHANGELOG.md")
-    with open("CHANGELOG.md") as fp:
+    print("updating changelog.rst")
+    with open("changelog.rst") as fp:
         content = fp.read()
 
-    marker = "<!-- changelog-unreleased-marker -->"
+    marker = ".. changelog-unreleased-marker"
 
     content = content.replace(
         marker,
@@ -36,7 +36,7 @@ def update_changelog(new_version):
 
 # {new_version}""",
     )
-    with open("CHANGELOG.md", "w") as fp:
+    with open("changelog.rst", "w") as fp:
         fp.write(content)
 
 

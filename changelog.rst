@@ -5,6 +5,8 @@ Unreleased
 ----------
 
 .. changelog-unreleased-marker
+
+# 0.8.0
 - Fix an ordering bug under libcst version 1.5.0 . New validation prevents the
   generation of invalid ``if`` nodes, which ``slyp`` was generating and then
   fixing. This applies to certain cases in which an ``if`` was not followed by
