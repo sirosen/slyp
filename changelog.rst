@@ -5,6 +5,11 @@ Unreleased
 ----------
 
 .. changelog-unreleased-marker
+- Fix an ordering bug under libcst version 1.5.0 . New validation prevents the
+  generation of invalid ``if`` nodes, which ``slyp`` was generating and then
+  fixing. This applies to certain cases in which an ``if`` was not followed by
+  a space, as in ``if(x): pass``. These cases may now require two runs to
+  converge.
 
 0.7.1
 -----

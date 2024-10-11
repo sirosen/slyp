@@ -52,11 +52,12 @@ def process_stdin(
                 enabled_codes=enabled_codes,
             )
         )
-        for message in result.messages:
-            if message.verbosity <= args.verbosity:
-                print(message.message)
     else:
         raise NotImplementedError("stdin with unexpected --only value")
+
+    for message in result.messages:
+        if message.verbosity <= args.verbosity:
+            print(message.message)
 
     return result.success
 
