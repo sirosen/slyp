@@ -69,6 +69,8 @@ UNPARENTHESIZED_CONCAT_IN_ELEMENT_LIST_MATCHER = libcst.matchers.OneOf(
 PARENT_NODE_REQUIRES_INNERMOST_PARENS_MATCHER = libcst.matchers.OneOf(
     libcst.matchers.Arg(star=libcst.matchers.MatchIfTrue(lambda x: "*" in x)),
     libcst.matchers.UnaryOperation(),
+    libcst.matchers.If(whitespace_before_test=libcst.matchers.SimpleWhitespace("")),
+    libcst.matchers.While(whitespace_after_while=libcst.matchers.SimpleWhitespace("")),
 )
 
 ParenFixNodeTypes = t.Union[
@@ -202,6 +204,7 @@ class SlypTransformer(libcst.CSTTransformer):
                 libcst.metadata.ParentNodeProvider, original_node
             )
             # check if the parent of the node is *-expansion of an arg
+            # or an `if` or `while` without whitespace before the condition
             if libcst.matchers.matches(
                 parent, PARENT_NODE_REQUIRES_INNERMOST_PARENS_MATCHER
             ):

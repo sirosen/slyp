@@ -301,6 +301,21 @@ def test_if_with_paren_gets_space_inserted(fix_text):
             pass
         """
     )
+
+    # after the first round of fixing, space is inserted but the parens are preserved
+    # this ensures that we never generate an invalid node which libcst 1.5.0+ will
+    # reject
+    assert new_text == textwrap.dedent(
+        """\
+        if (x()):
+            pass
+        """
+    )
+
+    # confirm that a second round of fixing is sufficient and gets to the desired
+    # end-result
+    new_text, _ = fix_text(new_text)
+
     assert new_text == textwrap.dedent(
         """\
         if x():
