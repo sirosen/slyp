@@ -10,6 +10,8 @@ Unreleased
   fixing. This applies to certain cases in which an ``if`` was not followed by
   a space, as in ``if(x): pass``. These cases may now require two runs to
   converge.
+- Add fixer behavior to add a ``-> None`` return type annotation to
+  ``__init__`` methods which have no return type annotation.
 
 0.7.1
 -----

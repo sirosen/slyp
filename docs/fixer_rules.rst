@@ -103,3 +103,29 @@ if possible.
     +x = "foo bar"
     -y = f"{item1} " f"{item2}"
     +y = f"{item1} {item2}"
+
+
+Always annotate ``__init__` with ``-> None``
+--------------------------------------------
+
+.. note::
+
+    An unannotated initializer with no args is treated by type checkers as an
+    unannotated function. i.e. ``def __init__(self): ...`` is not annotated.
+    But adding a ``-> None`` annotation makes it into an annotated function,
+    and can change checker behaviors.
+
+    By contrast, ``def __init__(self, x: int): ...`` is treated as annotated,
+    and the ``-> None`` is not needed to mark it as annotated.
+
+    This results in discrepancies between code with an without the return type
+    annotation.
+
+When defining initializers, always declare the return type as ``None``.
+
+.. code-block:: diff
+
+     class A:
+    -    def __init__(self):
+    +    def __init__(self) -> None:
+             self.x = 1

@@ -5,6 +5,11 @@ import typing as t
 import libcst
 import libcst.matchers
 
+# an __init__ definition missing the return type annotation
+MISSING_RETURN_ANNOTATION_INIT_MATCHER = libcst.matchers.FunctionDef(
+    name=libcst.matchers.Name(value="__init__"), returns=None
+)
+
 # SimpleWhitespace defines whitespace as seen between tokens in most contexts
 # it can contain newlines *if* there is a preceding backslash escape
 SIMPLE_WHITESPACE_NO_NEWLINE_MATCHER = libcst.matchers.SimpleWhitespace(
@@ -1116,6 +1121,17 @@ class SlypTransformer(libcst.CSTTransformer):
                     )
                 )
 
+        return updated_node
+
+    def leave_FunctionDef(
+        self, original_node: libcst.FunctionDef, updated_node: libcst.FunctionDef
+    ) -> libcst.FunctionDef:
+        if libcst.matchers.matches(
+            original_node, MISSING_RETURN_ANNOTATION_INIT_MATCHER
+        ):
+            updated_node = updated_node.with_changes(
+                returns=libcst.Annotation(annotation=libcst.Name("None"))
+            )
         return updated_node
 
     def leave_ImportFrom(
