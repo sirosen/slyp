@@ -5,6 +5,7 @@ Unreleased
 ----------
 
 .. changelog-unreleased-marker
+- Bugfix: clear stale caches which could be incorrectly used in v0.8.0
 
 0.8.0
 -----
