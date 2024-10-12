@@ -14,7 +14,7 @@ class CodeDef:
         example: str,
         hidden: bool = False,
         default_disabled: bool = False,
-    ):
+    ) -> None:
         self.code = code
         self.message = message
         self.example = textwrap.dedent(example).strip("\n")
