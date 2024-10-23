@@ -669,6 +669,16 @@ class SlypTransformer(libcst.CSTTransformer):
                 updated_node,
                 preserve_innermost=True,
             )
+        elif len(original_node.lpar) == 0:
+            # check if the parent of the node is a 'return' statement
+            # if so, add parens
+            parent = self.get_metadata(
+                libcst.metadata.ParentNodeProvider, original_node
+            )
+            if libcst.matchers.matches(parent, libcst.matchers.Return()):
+                updated_node = updated_node.with_changes(
+                    lpar=[libcst.LeftParen()], rpar=[libcst.RightParen()]
+                )
         if libcst.matchers.matches(
             original_node,
             libcst.matchers.Tuple(

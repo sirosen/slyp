@@ -203,3 +203,19 @@ def test_paren_insertion_in_collection_preserves_and_respaces_comments(
         {close_delim}
         """
     )
+
+
+def test_paren_insertion_on_return_tuple(fix_text):
+    new_text, _ = fix_text(
+        """
+        def foo(a, b):
+            return a + 1, b - 1
+        """
+    )
+
+    assert new_text == textwrap.dedent(
+        """
+        def foo(a, b):
+            return (a + 1, b - 1)
+        """
+    )

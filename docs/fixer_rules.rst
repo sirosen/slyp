@@ -105,8 +105,8 @@ if possible.
     +y = f"{item1} {item2}"
 
 
-Always annotate ``__init__` with ``-> None``
---------------------------------------------
+Always annotate ``__init__`` with ``-> None``
+---------------------------------------------
 
 .. note::
 
@@ -129,3 +129,14 @@ When defining initializers, always declare the return type as ``None``.
     -    def __init__(self):
     +    def __init__(self) -> None:
              self.x = 1
+
+Always parenthesize tuples in return statements
+-----------------------------------------------
+
+In a ``return`` statement, a bare tuple will have parentheses added.
+
+.. code-block:: diff
+
+     def foo(a, b):
+    -    return a + 1, b - 1
+    +    return (a + 1, b - 1)
