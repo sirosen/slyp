@@ -105,8 +105,8 @@ if possible.
     +y = f"{item1} {item2}"
 
 
-Always annotate ``__init__` with ``-> None``
---------------------------------------------
+Always annotate ``__init__`` with ``-> None``
+---------------------------------------------
 
 .. note::
 
