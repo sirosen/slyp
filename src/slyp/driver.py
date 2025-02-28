@@ -8,6 +8,7 @@ import multiprocessing.pool
 import os
 import stat
 import subprocess
+import sys
 import time
 import typing as t
 
@@ -44,6 +45,7 @@ def process_stdin(
 
     if args.only == "fix":
         result = fix_file(file_obj)
+        message_stream = sys.stderr
     elif args.only == "lint":
         result = result.join(
             check_file(
@@ -52,12 +54,13 @@ def process_stdin(
                 enabled_codes=enabled_codes,
             )
         )
+        message_stream = sys.stdout
     else:
         raise NotImplementedError("stdin with unexpected --only value")
 
     for message in result.messages:
         if message.verbosity <= args.verbosity:
-            print(message.message)
+            print(message.message, file=message_stream)
 
     return result.success
 
@@ -78,7 +81,7 @@ def parallel_process(
     futures = {}
     for filename in all_py_filenames(args.files, args.use_git_ls):
         if args.verbosity >= 1:
-            print(f"slpy: processing {filename}")
+            print(f"slpy: processing {filename}", file=sys.stderr)
         futures[filename] = process_pool.apply_async(
             process_file,
             (filename, args.only, disabled_codes, enabled_codes, passing_cache),

@@ -81,7 +81,7 @@ def main() -> None:
         sys.exit(1)
 
     if args.verbosity:
-        print("ok")
+        print("ok", file=sys.stderr)
 
 
 def list_codes() -> None:
