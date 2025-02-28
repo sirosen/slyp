@@ -177,14 +177,14 @@ class FindEquivalentBranchesVisitor(ErrorRecordingVisitor):
 
         if r := product_compare_ast(all_body_nodes):
             self.errors.add((node.lineno, self.filename, result_to_code(r)))
-        else:
-            self.generic_visit(node)
+
+        self.generic_visit(node)
 
     def visit_IfExp(self, node: ast.IfExp) -> None:
         if r := product_compare_ast([node.body, node.orelse]):
             self._record(node, r)
-        else:
-            self.generic_visit(node)
+
+        self.generic_visit(node)
 
     def visit_If(self, node: ast.If) -> None:
         collected_branches = [node.body]
@@ -199,15 +199,15 @@ class FindEquivalentBranchesVisitor(ErrorRecordingVisitor):
 
         if r := product_compare_ast(collected_branches):
             self._record(node, r)
-        else:
-            # visit subnodes explicitly and call `generic_visit` on any `If` nodes in
-            # the else branch
-            # this avoids re-analyzing content which we already checked above
-            self.visit(node.test)
-            for subnode in node.body:
+
+        # visit subnodes explicitly and call `generic_visit` on any `If` nodes in
+        # the else branch
+        # this avoids re-analyzing content which we already checked above
+        self.visit(node.test)
+        for subnode in node.body:
+            self.visit(subnode)
+        for subnode in terminal_else_branch:
+            if isinstance(subnode, ast.If):
+                self.generic_visit(subnode)
+            else:
                 self.visit(subnode)
-            for subnode in terminal_else_branch:
-                if isinstance(subnode, ast.If):
-                    self.generic_visit(subnode)
-                else:
-                    self.visit(subnode)

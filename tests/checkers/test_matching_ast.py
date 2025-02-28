@@ -102,3 +102,31 @@ def test_check_captures_w203(check_text):
         "foo.py:2: two non-adjacent AST branches have identical trivial contents (W203)"
         in res.message_strings
     )
+
+
+def test_captures_nested_w200s(check_text):
+    res = check_text(
+        """\
+        def foo():
+            if bar():
+                return baz(quux("snork"))
+            elif bar2():
+                return baz(quux("snork"))
+            else:
+                try:
+                    return baz(snork("quux"))
+                except:
+                    return baz(snork("quux"))
+        """,
+        filename="foo.py",
+    )
+
+    assert not res.success
+    assert (
+        "foo.py:2: two AST branches have identical contents (W200)"
+        in res.message_strings
+    )
+    assert (
+        "foo.py:7: two AST branches have identical contents (W200)"
+        in res.message_strings
+    )

@@ -12,6 +12,7 @@ Unreleased
   on stdin.
 - Minor bugfix to the matching AST linter: some nodes were skipped when
   analyzing ``if``\s.
+- Fix matching AST linter short-circuiting too early upon finding one error.
 
 0.8.1
 -----
