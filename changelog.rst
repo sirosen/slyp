@@ -6,6 +6,9 @@ Unreleased
 
 .. changelog-unreleased-marker
 
+0.8.2
+-----
+
 - Add a ``-q/--quiet`` flag to decrease verbosity.
 - Log messages printed during ``slyp`` runs are now sent to stderr.
   ``stdout`` is reserved for linting messages and for fixer output when running
