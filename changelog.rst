@@ -10,6 +10,8 @@ Unreleased
 - Log messages printed during ``slyp`` runs are now sent to stderr.
   ``stdout`` is reserved for linting messages and for fixer output when running
   on stdin.
+- Minor bugfix to the matching AST linter: some nodes were skipped when
+  analyzing ``if``\s.
 
 0.8.1
 -----
