@@ -6,6 +6,8 @@ Unreleased
 
 .. changelog-unreleased-marker
 
+- Add a ``-q/--quiet`` flag to decrease verbosity.
+
 0.8.1
 -----
 

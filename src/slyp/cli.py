@@ -25,6 +25,13 @@ def main() -> None:
         dest="verbosity",
     )
     parser.add_argument(
+        "-q",
+        "--quiet",
+        action="count",
+        help="decrease output verbosity",
+        default=0,
+    )
+    parser.add_argument(
         "--use-git-ls", action="store_true", help="find python files from git-ls-files"
     )
     parser.add_argument(
@@ -52,6 +59,8 @@ def main() -> None:
     )
     parser.add_argument("files", nargs="*", help="default: all python files")
     args = parser.parse_args()
+
+    args.verbosity -= args.quiet
 
     if args.list:
         list_codes()
