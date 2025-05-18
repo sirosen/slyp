@@ -7,7 +7,7 @@ name = "slyp"
 version = "0.8.2"
 description = "Stephen Lints Your Python"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = { "text" = "MIT" }
 keywords = []
 authors = [
@@ -16,11 +16,11 @@ authors = [
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     "libcst>=1",

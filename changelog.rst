@@ -6,6 +6,9 @@ Unreleased
 
 .. changelog-unreleased-marker
 
+- Add support for Python 3.13
+- Remove support for Python 3.8
+
 0.8.2
 -----
 
