@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     name: "Run '${{ matrix.toxenv }}' on python ${{ matrix.py }}"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: get date for caching
         run: /bin/date -u "+%U" > cachedate.txt
@@ -41,7 +41,7 @@ jobs:
     name: "Run tests on ${{ matrix.os }}, py${{ matrix.py }}"
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: get date for caching
         run: /bin/date -u "+%U" > cachedate.txt
