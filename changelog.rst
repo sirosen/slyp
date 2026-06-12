@@ -6,6 +6,9 @@ Unreleased
 
 .. changelog-unreleased-marker
 
+0.9.0
+-----
+
 - Add support for Python 3.13 and 3.14 .
 - Remove support for Python 3.8 and 3.9 .
 - Add fixer behavior to convert variables to literal ``None`` when they are the
