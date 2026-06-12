@@ -980,15 +980,64 @@ class SlypTransformer(libcst.CSTTransformer):
     def leave_IfExp(
         self, original_node: libcst.IfExp, updated_node: libcst.IfExp
     ) -> libcst.IfExp:
-        # parens are required for usage of the results:
+        new_node = updated_node
+
+        # parens are required for usage of the results, e.g.:
         #   (foo() if x else bar())["baz"]
-        if len(original_node.lpar) < 2:
-            return updated_node
-        return self.modify_parenthesized_node(
-            original_node,
-            updated_node,
-            preserve_innermost=True,
-        )
+        # so we preserve innermost
+        if len(original_node.lpar) >= 2:
+            new_node = self.modify_parenthesized_node(
+                original_node,
+                updated_node,
+                preserve_innermost=True,
+            )
+
+        # prefer `None` over a varname; convert expressions of the form
+        #     x if x is None else y
+        # to the form
+        #     None if x is None else y
+        if libcst.matchers.matches(
+            original_node.test,
+            libcst.matchers.Comparison(
+                left=libcst.matchers.Name(),
+                comparisons=[
+                    libcst.matchers.ComparisonTarget(
+                        operator=libcst.matchers.Is(),
+                        comparator=libcst.matchers.Name("None"),
+                    )
+                ],
+            ),
+        ):
+            var_name = original_node.test.left.value  # type: ignore[attr-defined]
+            if libcst.matchers.matches(
+                original_node.body, libcst.matchers.Name(var_name)
+            ):
+                new_node = new_node.with_changes(
+                    body=new_node.body.with_changes(value="None")
+                )
+        # same as above, but using `is not None`
+        # we won't worry about the "Yoda expression" spelling
+        elif libcst.matchers.matches(
+            original_node.test,
+            libcst.matchers.Comparison(
+                left=libcst.matchers.Name(),
+                comparisons=[
+                    libcst.matchers.ComparisonTarget(
+                        operator=libcst.matchers.IsNot(),
+                        comparator=libcst.matchers.Name("None"),
+                    )
+                ],
+            ),
+        ):
+            var_name = original_node.test.left.value  # type: ignore[attr-defined]
+            if libcst.matchers.matches(
+                original_node.orelse, libcst.matchers.Name(var_name)
+            ):
+                new_node = new_node.with_changes(
+                    orelse=new_node.orelse.with_changes(value="None")
+                )
+
+        return new_node
 
     def leave_Await(
         self, original_node: libcst.Await, updated_node: libcst.Await

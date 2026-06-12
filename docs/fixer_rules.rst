@@ -87,6 +87,27 @@ After checking ``if x is None``, do not return ``x``.
     +    return None
 
 
+Prefer ``None`` as the Value of an If-Expression
+------------------------------------------------
+
+When using an if-expression, ``... if x is None else ...``, prefer ``None`` over ``x`` in the body.
+
+.. code-block:: diff
+
+    -x if x is None else ...
+    +None if x is None else ...
+
+This also applies to the ``is not`` case:
+
+.. code-block:: diff
+
+    -... if x is not None else x
+    +... if x is not None else None
+
+.. note::
+
+    Currently, ``slyp`` will not check for "yoda conditions", e.g., ``None is x``.
+
 Auto-concat Inline Strings
 --------------------------
 
