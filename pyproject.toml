@@ -34,6 +34,17 @@ source = "https://github.com/sirosen/slyp"
 slyp = "slyp:main"
 
 
+[dependency-groups]
+coverage = ["coverage"]
+test = ["pytest", {include-group = "coverage"}]
+mypy = ["mypy"]
+docs = [
+  "sphinx<8",
+  "sphinx-issues<5",
+  "furo==2024.7.18",
+]
+
+
 [tool.coverage.run]
 parallel = true
 source = ["slyp"]
