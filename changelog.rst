@@ -6,8 +6,8 @@ Unreleased
 
 .. changelog-unreleased-marker
 
-- Add support for Python 3.13
-- Remove support for Python 3.8
+- Add support for Python 3.13 and 3.14 .
+- Remove support for Python 3.8 and 3.9 .
 - Add fixer behavior to convert variables to literal ``None`` when they are the
   body of an if-expression which compares them with ``None``.
   For example, ``None if x is None else foo(x)``.
