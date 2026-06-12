@@ -2,18 +2,14 @@ import textwrap
 
 
 def test_unannotated_init_gets_return_none_added(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         class A:
             def __init__(self): ...
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         class A:
             def __init__(self) -> None: ...
-        """
-    )
+        """)
 
 
 def test_annotated_init_sees_no_change(fix_text):
@@ -38,15 +34,11 @@ def test_badly_annotated_init_sees_no_change(fix_text):
 
 
 def test_mixed_arg_annotations_dont_change_init_type(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         class A:
             def __init__(self, x: int, y): ...
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         class A:
             def __init__(self, x: int, y) -> None: ...
-        """
-    )
+        """)

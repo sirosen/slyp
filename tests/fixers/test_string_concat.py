@@ -4,8 +4,7 @@ import pytest
 
 
 def test_simple_string_concat_with_matching_characteristics(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = "foo " "bar"
         b = 'foo ' 'bar'
         c = r"foo " r"bar"
@@ -13,10 +12,8 @@ def test_simple_string_concat_with_matching_characteristics(fix_text):
         e = b"foo " b"bar"
         f = br"foo " br"bar"
         g = rb"foo " rb"bar"
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         a = "foo bar"
         b = 'foo bar'
         c = r"foo bar"
@@ -24,8 +21,7 @@ def test_simple_string_concat_with_matching_characteristics(fix_text):
         e = b"foo bar"
         f = br"foo bar"
         g = rb"foo bar"
-        """
-    )
+        """)
 
 
 def test_fmt_toggle_can_reenable_fixing(fix_text):
@@ -36,13 +32,11 @@ def test_fmt_toggle_can_reenable_fixing(fix_text):
         a = "foo " "bar"
         """,
     )
-    assert new_text == textwrap.dedent(
-        """\
+    assert new_text == textwrap.dedent("""\
         # slyp: disable
         # fmt: on
         a = "foo bar"
-        """
-    )
+        """)
 
 
 def test_quote_style_mismatch_suppresses_fixing(fix_text):
@@ -84,12 +78,10 @@ def test_prefix_mismatch_is_ignored_in_special_cases(fix_text):
         b = rb"foo " br"bar"
         """,
     )
-    assert new_text == textwrap.dedent(
-        """\
+    assert new_text == textwrap.dedent("""\
         a = br"foo bar"
         b = rb"foo bar"
-        """
-    )
+        """)
 
 
 def test_double_concat(fix_text):
@@ -98,11 +90,9 @@ def test_double_concat(fix_text):
         x = "foo " "bar " "baz"
         """,
     )
-    assert new_text == textwrap.dedent(
-        """\
+    assert new_text == textwrap.dedent("""\
         x = "foo bar baz"
-        """
-    )
+        """)
 
 
 def test_concat_fstrings(fix_text):
@@ -112,12 +102,10 @@ def test_concat_fstrings(fix_text):
         y = fr"{foo}" Fr"{bar}"
         """,
     )
-    assert new_text == textwrap.dedent(
-        """\
+    assert new_text == textwrap.dedent("""\
         x = f"{foo}{bar}"
         y = fr"{foo}{bar}"
-        """
-    )
+        """)
 
 
 def test_concat_fstring_with_simple(fix_text):
@@ -129,14 +117,12 @@ def test_concat_fstring_with_simple(fix_text):
         q = r"foo" rf"{bar}"
         """,
     )
-    assert new_text == textwrap.dedent(
-        """\
+    assert new_text == textwrap.dedent("""\
         x = f"{foo}bar"
         y = f"foo{bar}"
         p = fr"{foo}bar"
         q = rf"foo{bar}"
-        """
-    )
+        """)
 
 
 def test_concat_fstring_skips_mismatched_quotes(fix_text):

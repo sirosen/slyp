@@ -19,42 +19,30 @@ def test_builtin_call_fixer_converts_empty_call_to_empty_literal(
 
 
 def test_dict_call_fixer_converts_kwargs_to_quoted_keys(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = dict(x=1, y="foo", z_arg={})
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         a = {"x": 1, "y": "foo", "z_arg": {}}
-        """
-    )
+        """)
 
 
 def test_dict_call_fixer_preserves_double_star_expansion(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = dict(x=1, **kwargs)
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         a = {"x": 1, **kwargs}
-        """
-    )
+        """)
 
 
 def test_dict_call_fixer_handles_multi_doublestar(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = dict(x=1, **kwargs, **kwargs2)
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         a = {"x": 1, **kwargs, **kwargs2}
-        """
-    )
+        """)
 
 
 def test_dict_call_fixer_does_not_munge_positional_arg(fix_text):
@@ -72,24 +60,19 @@ def test_dict_call_fixer_does_not_munge_positional_arg(fix_text):
 
 
 def test_dict_call_fixer_handles_nested_calls(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = dict(x=dict(y=2))
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         a = {"x": {"y": 2}}
-        """
-    )
+        """)
 
 
 def test_dict_call_fixer_preserves_the_simplest_whitespace(fix_text):
     # trailing comma whitespace + leading whitespace is the simple case
     # because the trailing comma carries the whitespace info, it's easy to
     # preserve by just keeping the comma intact
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = dict(
             x=dict(
                 y=2,
@@ -98,10 +81,8 @@ def test_dict_call_fixer_preserves_the_simplest_whitespace(fix_text):
                 **p,
             )
         )
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         a = {
             "x": {
                 "y": 2,
@@ -110,16 +91,14 @@ def test_dict_call_fixer_preserves_the_simplest_whitespace(fix_text):
                 **p,
             }
         }
-        """
-    )
+        """)
 
 
 def test_dict_call_fixer_preserves_intricate_whitespace(fix_text):
     # no trailing comma, or empty block are more intricate cases
     # we need to find the whitespace which is attached to the last arg
     # and reattach it to the rbrace
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = dict(
             x=dict(
                     y="hi"
@@ -132,10 +111,8 @@ def test_dict_call_fixer_preserves_intricate_whitespace(fix_text):
                 **q
         )
         )
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         a = {
             "x": {
                     "y": "hi"
@@ -148,34 +125,25 @@ def test_dict_call_fixer_preserves_intricate_whitespace(fix_text):
                 **q
         }
         }
-        """
-    )
+        """)
 
 
 def test_set_fixer_converts_call_of_generator(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = set(x for x in y())
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         a = {x for x in y()}
-        """
-    )
+        """)
 
 
 def test_list_fixer_converts_call_of_generator(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = list(x for x in y())
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         a = [x for x in y()]
-        """
-    )
+        """)
 
 
 def test_generator_comp_fixer_requires_exactly_one_arg(fix_text):
@@ -225,18 +193,14 @@ def test_iterable_call_under_set_call_is_unwrapped(
 
 
 def test_nested_iterable_calls_under_set_work(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         set(tuple())
         set(list())
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         set()
         set()
-        """
-    )
+        """)
 
 
 @pytest.mark.parametrize(

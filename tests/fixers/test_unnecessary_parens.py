@@ -72,31 +72,26 @@ def test_multiline_always_allowed(fix_text):
 
 
 def test_names_attributes_and_indexing(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = (x)
         b = (x.y)
         c = (x).y
         d = x["y"]
         e = (x)["y"]
         f = (x["y"])
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         a = x
         b = x.y
         c = x.y
         d = x["y"]
         e = x["y"]
         f = x["y"]
-        """
-    )
+        """)
 
 
 def test_collection_types(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = {1: 2}
         b = ({2: 3})
         c = {x: y for x, y in foo()}
@@ -109,10 +104,8 @@ def test_collection_types(fix_text):
         j = ({2})
         k = {x for x in foo()}
         l = ({x for x in foo()})
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         a = {1: 2}
         b = {2: 3}
         c = {x: y for x, y in foo()}
@@ -125,64 +118,52 @@ def test_collection_types(fix_text):
         j = {2}
         k = {x for x in foo()}
         l = {x for x in foo()}
-        """
-    )
+        """)
 
 
 def test_operators_and_numerics(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = ((1 + 2)) * (3.2)
         b = ((~ (1 - 2))) * 3 - 2.2
         c = (((a < b) | 1))
         d = a * b
         e = -d
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         a = (1 + 2) * (3.2)
         b = (~ (1 - 2)) * 3 - 2.2
         c = ((a < b) | 1)
         d = a * b
         e = -d
-        """
-    )
+        """)
 
 
 def test_ellipsis(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = ((...))
         b = ...
-        """
-    )
+        """)
     assert new_text == "a = ...\nb = ...\n"
 
 
 def test_string_styles(fix_text):
     # note that the ConcatenatedString node will also be fixed to a single string
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         x = "foo"
         a = ("foo")
         b = (("foo " "bar"))
         c = (((f"baz {a}")))
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         x = "foo"
         a = "foo"
         b = "foo bar"
         c = f"baz {a}"
-        """
-    )
+        """)
 
 
 def test_lambdas_and_yields_with_many_parens(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = ((lambda: 1))
         b = (lambda: ((1)))
         c = lambda: (yield)
@@ -192,10 +173,8 @@ def test_lambdas_and_yields_with_many_parens(fix_text):
         g = (lambda: ((yield from foo())))
         h = ((lambda: ((yield from foo()))))
         i = ((((lambda: ((yield from foo()))))))
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         a = (lambda: 1)
         b = (lambda: (1))
         c = lambda: (yield)
@@ -205,25 +184,20 @@ def test_lambdas_and_yields_with_many_parens(fix_text):
         g = (lambda: (yield from foo()))
         h = (lambda: (yield from foo()))
         i = (lambda: (yield from foo()))
-        """
-    )
+        """)
 
 
 def test_generator_expressions(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = foo(x for x in bar())
         b = foo((x for x in bar()), baz())
         c = foo(((x for x in bar())), baz())
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         a = foo(x for x in bar())
         b = foo((x for x in bar()), baz())
         c = foo((x for x in bar()), baz())
-        """
-    )
+        """)
 
 
 def test_if_expressions(fix_text):
@@ -244,92 +218,72 @@ def test_if_expressions(fix_text):
 
 
 def test_await_safe_use_for_precedence(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         a = (await foo() if x else bar())["baz"]
         b = ((await foo() if x else bar()))
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         a = (await foo() if x else bar())["baz"]
         b = (await foo() if x else bar())
-        """
-    )
+        """)
 
 
 def test_match_with_paren_gets_space_inserted(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         match(x):
             case (1, 2):
                 pass
             case _:
                 pass
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         match x:
             case (1, 2):
                 pass
             case _:
                 pass
-        """
-    )
+        """)
 
 
 def test_with_with_paren_gets_space_inserted(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         with(x()):
             pass
-        """
-    )
-    assert new_text == textwrap.dedent(
-        """\
+        """)
+    assert new_text == textwrap.dedent("""\
         with x():
             pass
-        """
-    )
+        """)
 
 
 def test_if_with_paren_gets_space_inserted(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         if(x()):
             pass
-        """
-    )
+        """)
 
     # after the first round of fixing, space is inserted but the parens are preserved
     # this ensures that we never generate an invalid node which libcst 1.5.0+ will
     # reject
-    assert new_text == textwrap.dedent(
-        """\
+    assert new_text == textwrap.dedent("""\
         if (x()):
             pass
-        """
-    )
+        """)
 
     # confirm that a second round of fixing is sufficient and gets to the desired
     # end-result
     new_text, _ = fix_text(new_text)
 
-    assert new_text == textwrap.dedent(
-        """\
+    assert new_text == textwrap.dedent("""\
         if x():
             pass
-        """
-    )
+        """)
 
 
 def test_import_from_gets_space_inserted(fix_text):
-    new_text, _ = fix_text(
-        """\
+    new_text, _ = fix_text("""\
         from foo import(bar, baz)
-        """
-    )
+        """)
     assert new_text == "from foo import bar, baz\n"
 
 

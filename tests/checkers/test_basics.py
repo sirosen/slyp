@@ -1,6 +1,5 @@
 def test_check_passes_on_example_file(check_text):
-    res = check_text(
-        """
+    res = check_text("""
         x = "foo bar"
 
         foo(x="foo bar")
@@ -34,8 +33,7 @@ def test_check_passes_on_example_file(check_text):
             "beta",
             "gamma",
         }
-        """
-    )
+        """)
     assert res.success
 
 

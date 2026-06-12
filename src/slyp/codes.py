@@ -100,15 +100,13 @@ CODE_MAP: dict[str, CodeDef] = {c.code: c for c in ALL_CODES}
 
 
 def _generate_reference_raw() -> t.Iterator[str]:
-    yield (
-        """\
+    yield ("""\
 E is for "error" (you should probably change this)
 
 W is for "warning" (you might want to change this)
 
 Some warnings are disabled by default; enable them with ``--enable``.
-"""
-    )
+""")
 
     for code in ALL_CODES:
         if code.hidden:
