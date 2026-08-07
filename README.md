@@ -51,12 +51,24 @@ slyp
 
 Or as a pre-commit hook using the following `pre-commit-config.yaml`:
 
+<!--[[[cog
+import mddj.api
+import cog
+version = mddj.api.DJ().read.version()
+cog.outl("```yaml")
+cog.outl("- repo: https://github.com/sirosen/slyp")
+cog.outl(f"  rev: {version}")
+cog.outl("  hooks:")
+cog.outl("    - id: slyp")
+cog.outl("```")
+]]]-->
 ```yaml
 - repo: https://github.com/sirosen/slyp
   rev: 0.9.0
   hooks:
     - id: slyp
 ```
+<!--[[[end]]]-->
 
 ## License
 

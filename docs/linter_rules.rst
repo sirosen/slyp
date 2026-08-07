@@ -1,7 +1,14 @@
 Linter Rules
 ============
 
-.. generate-reference-insert-start
+.. [[[cog
+.. import cog
+.. from slyp.codes import generate_reference
+.. cog.outl()
+.. for line in generate_reference():
+..     cog.out(line)
+.. cog.outl()
+.. ]]]
 
 E is for "error" (you should probably change this)
 
@@ -90,4 +97,4 @@ two non-adjacent AST branches have identical trivial contents
     else:
         return None
 
-.. generate-reference-insert-end
+.. [[[end]]]
