@@ -1,14 +1,21 @@
 version: 2
 
-sphinx:
-  configuration: docs/conf.py
-  fail_on_warning: true
-
 build:
-  os: "ubuntu-24.04"
-  tools:
-    python: "3.14"
+  os: ubuntu-24.04
 
-python:
-  install:
-    - 'pip install . --group docs'
+  # in order to have RTD use our tox configuration for the build, we take full
+  # control over 'build.commands'
+  # see also: https://github.com/astral-sh/uv/issues/10074#issuecomment-3128225815
+  commands:
+    # install/setup uv
+    - asdf plugin add uv
+    - asdf install uv latest
+    - asdf global uv latest
+    # use uv to get
+    # - Python 3.14
+    # - tox (with tox-uv)
+    - uv tool install tox --with tox-uv --python "3.14" --managed-python
+    # create the tox environment (`--notest` skips commands)
+    - uv tool run tox run -e docs --notest -vvvvv
+    # do the actual build step, to the RTD documented output directory
+    - uv tool run tox run -e docs --skip-pkg-install -q -- "${READTHEDOCS_OUTPUT}"/html -b dirhtml
