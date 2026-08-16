@@ -4,6 +4,7 @@ import argparse
 import glob
 import hashlib
 import json
+import multiprocessing
 import multiprocessing.pool
 import os
 import stat
@@ -14,7 +15,11 @@ import typing as t
 
 from slyp.checkers import check_file
 from slyp.codes import CODE_MAP
-from slyp.file_cache import PassingFileCache
+from slyp.file_cache import (
+    FileCacheReadProxy,
+    MultiprocessCacheAddProxy,
+    PassingFileCache,
+)
 from slyp.fixer import fix_file
 from slyp.hashable_file import HashableFile
 from slyp.result import Message, Result
@@ -24,6 +29,8 @@ CONTRACT_VERSION: str = "1.7"
 
 
 def driver_main(args: argparse.Namespace) -> bool:
+    multiprocessing.set_start_method("spawn")
+
     # parse inputs from comma delimited lists
     disabled_codes = {x for x in args.disable.split(",") if x != ""}
     enabled_codes = {x for x in args.enable.split(",") if x != ""}
@@ -68,26 +75,75 @@ def process_stdin(
 def parallel_process(
     args: argparse.Namespace, disabled_codes: set[str], enabled_codes: set[str]
 ) -> bool:
-    if not args.no_cache:
-        passing_cache: PassingFileCache | None = PassingFileCache(
-            contract_version=CONTRACT_VERSION,
-            config_id=compute_config_id(enabled_codes, disabled_codes),
+    if args.no_cache:
+        return _run_pool_no_cache(
+            args,
+            disabled_codes,
+            enabled_codes,
         )
     else:
-        passing_cache = None
-
-    process_pool = multiprocessing.pool.Pool()
-
-    futures = {}
-    for filename in all_py_filenames(args.files, args.use_git_ls):
-        if args.verbosity >= 1:
-            print(f"slpy: processing {filename}", file=sys.stderr)
-        futures[filename] = process_pool.apply_async(
-            process_file,
-            (filename, args.only, disabled_codes, enabled_codes, passing_cache),
+        return _run_pool_with_cache(
+            args,
+            disabled_codes,
+            enabled_codes,
         )
-    process_pool.close()
 
+
+def _run_pool_no_cache(
+    args: argparse.Namespace, disabled_codes: set[str], enabled_codes: set[str]
+) -> bool:
+    futures: dict[str, multiprocessing.pool.AsyncResult[Result]] = {}
+    with multiprocessing.pool.Pool() as process_pool:
+        for filename in all_py_filenames(args.files, args.use_git_ls):
+            if args.verbosity >= 1:
+                print(f"slpy: processing {filename}", file=sys.stderr)
+
+            futures[filename] = process_pool.apply_async(
+                process_file,
+                (filename, args.only, disabled_codes, enabled_codes),
+            )
+
+        success = handle_futures(args, futures)
+    return success
+
+
+def _run_pool_with_cache(
+    args: argparse.Namespace, disabled_codes: set[str], enabled_codes: set[str]
+) -> None:
+    futures: dict[str, multiprocessing.pool.AsyncResult[Result]] = {}
+
+    passing_cache: PassingFileCache | None = PassingFileCache(
+        contract_version=CONTRACT_VERSION,
+        config_id=compute_config_id(enabled_codes, disabled_codes),
+    )
+    mp_write_proxy = MultiprocessCacheAddProxy(passing_cache)
+
+    with mp_write_proxy.active(), multiprocessing.pool.Pool() as process_pool:
+        cache_add_callback = mp_write_proxy.make_cache_add_callback()
+        for filename in all_py_filenames(args.files, args.use_git_ls):
+            if args.verbosity >= 1:
+                print(f"slpy: processing {filename}", file=sys.stderr)
+
+            futures[filename] = process_pool.apply_async(
+                process_file,
+                (
+                    filename,
+                    args.only,
+                    disabled_codes,
+                    enabled_codes,
+                    FileCacheReadProxy(passing_cache),
+                    cache_add_callback,
+                ),
+            )
+
+        success = handle_futures(args, futures)
+    return success
+
+
+def handle_futures(
+    args: argparse.Namespace,
+    futures: dict[str, multiprocessing.pool.AsyncResult[Result]],
+) -> bool:
     success = True
 
     while futures:
@@ -119,9 +175,7 @@ def parallel_process(
 
             success = success and result.success
 
-    process_pool.join()
-
-    return result.success
+    return success
 
 
 def process_file(
@@ -129,7 +183,8 @@ def process_file(
     only: str | None,
     disabled_codes: set[str],
     enabled_codes: set[str],
-    passing_cache: PassingFileCache | None,
+    passing_cache: FileCacheReadProxy | None = None,
+    cache_add_callback: t.Callable[[HashableFile], None] | None = None,
 ) -> Result:
     result = Result(success=True, messages=[])
     file_obj = HashableFile(filename)
@@ -151,7 +206,10 @@ def process_file(
         )
 
     if passing_cache and result.success and only is None:
-        passing_cache.add(file_obj)
+        if cache_add_callback:
+            cache_add_callback(file_obj)
+        else:
+            passing_cache.add(file_obj)
     return result
 
 
