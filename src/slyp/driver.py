@@ -15,22 +15,24 @@ import typing as t
 
 from slyp.checkers import check_file
 from slyp.codes import CODE_MAP
-from slyp.file_cache import (
-    FileCacheReadProxy,
-    MultiprocessCacheAddProxy,
-    PassingFileCache,
-)
 from slyp.fixer import fix_file
 from slyp.hashable_file import HashableFile
 from slyp.result import Message, Result
+from slyp.sqlite_cache import (
+    CacheInitializer,
+    CacheReaderFactory,
+    FileCacheReader,
+    FileCacheWriter,
+    MultiprocessCacheManager,
+    MultiprocessWriteHandle,
+    NullCacheManagerShim,
+)
 
 DEFAULT_DISABLED_CODES: set[str] = {"W201", "W202", "W203"}
 CONTRACT_VERSION: str = "1.7"
 
 
 def driver_main(args: argparse.Namespace) -> bool:
-    multiprocessing.set_start_method("spawn")
-
     # parse inputs from comma delimited lists
     disabled_codes = {x for x in args.disable.split(",") if x != ""}
     enabled_codes = {x for x in args.enable.split(",") if x != ""}
@@ -76,50 +78,38 @@ def parallel_process(
     args: argparse.Namespace, disabled_codes: set[str], enabled_codes: set[str]
 ) -> bool:
     if args.no_cache:
-        return _run_pool_no_cache(
-            args,
-            disabled_codes,
-            enabled_codes,
-        )
+        return _run_pool(args, disabled_codes, enabled_codes, NullCacheManagerShim())
     else:
-        return _run_pool_with_cache(
+        cache_initializer = CacheInitializer()
+        cache_initializer.ensure_db_exists()
+        signature = compute_evaluation_signature(
+            CONTRACT_VERSION, enabled_codes, disabled_codes
+        )
+
+        cache_manager = MultiprocessCacheManager(cache_initializer, signature)
+        return _run_pool(
             args,
             disabled_codes,
             enabled_codes,
+            cache_manager,
         )
 
 
-def _run_pool_no_cache(
-    args: argparse.Namespace, disabled_codes: set[str], enabled_codes: set[str]
+def _run_pool(
+    args: argparse.Namespace,
+    disabled_codes: set[str],
+    enabled_codes: set[str],
+    cache_manager: MultiprocessCacheManager | NullCacheManagerShim,
 ) -> bool:
-    futures: dict[str, multiprocessing.pool.AsyncResult[Result]] = {}
-    with multiprocessing.pool.Pool() as process_pool:
-        for filename in all_py_filenames(args.files, args.use_git_ls):
-            if args.verbosity >= 1:
-                print(f"slpy: processing {filename}", file=sys.stderr)
-
-            futures[filename] = process_pool.apply_async(
-                process_file,
-                (filename, args.only, disabled_codes, enabled_codes),
-            )
-
-        success = handle_futures(args, futures)
-    return success
-
-
-def _run_pool_with_cache(
-    args: argparse.Namespace, disabled_codes: set[str], enabled_codes: set[str]
-) -> None:
+    mp_ctx = multiprocessing.get_context("spawn")
     futures: dict[str, multiprocessing.pool.AsyncResult[Result]] = {}
 
-    passing_cache: PassingFileCache | None = PassingFileCache(
-        contract_version=CONTRACT_VERSION,
-        config_id=compute_config_id(enabled_codes, disabled_codes),
-    )
-    mp_write_proxy = MultiprocessCacheAddProxy(passing_cache)
+    with (
+        cache_manager.active_context(mp_ctx) as cache_context,
+        mp_ctx.Pool() as process_pool,
+    ):
+        write_handle = cache_context.make_write_handle()
 
-    with mp_write_proxy.active(), multiprocessing.pool.Pool() as process_pool:
-        cache_add_callback = mp_write_proxy.make_cache_add_callback()
         for filename in all_py_filenames(args.files, args.use_git_ls):
             if args.verbosity >= 1:
                 print(f"slpy: processing {filename}", file=sys.stderr)
@@ -131,8 +121,8 @@ def _run_pool_with_cache(
                     args.only,
                     disabled_codes,
                     enabled_codes,
-                    FileCacheReadProxy(passing_cache),
-                    cache_add_callback,
+                    cache_manager.reader_factory,
+                    write_handle,
                 ),
             )
 
@@ -183,14 +173,14 @@ def process_file(
     only: str | None,
     disabled_codes: set[str],
     enabled_codes: set[str],
-    passing_cache: FileCacheReadProxy | None = None,
-    cache_add_callback: t.Callable[[HashableFile], None] | None = None,
+    cache_reader: FileCacheReader | CacheReaderFactory | None = None,
+    cache_writer: FileCacheWriter | MultiprocessWriteHandle | None = None,
 ) -> Result:
     result = Result(success=True, messages=[])
     file_obj = HashableFile(filename)
 
-    if passing_cache:
-        if file_obj in passing_cache:
+    if cache_reader is not None:
+        if CacheReaderFactory.agnostic_contains_file(file_obj, cache_reader):
             result.messages.append(
                 Message(message=f"cache hit: {filename}", verbosity=2)
             )
@@ -205,11 +195,8 @@ def process_file(
             )
         )
 
-    if passing_cache and result.success and only is None:
-        if cache_add_callback:
-            cache_add_callback(file_obj)
-        else:
-            passing_cache.add(file_obj)
+    if cache_writer and result.success and only is None:
+        cache_writer.write(file_obj)
     return result
 
 
@@ -230,6 +217,15 @@ def compute_config_id(enabled_codes: set[str], disabled_codes: set[str]) -> str:
 
     # full ID is the base + the computed bits hashed
     return config_hash.hexdigest()
+
+
+def compute_evaluation_signature(
+    contract_version: str, enabled_codes: set[str], disabled_codes: set[str]
+) -> str:
+    return (
+        f"contract:{contract_version}/"
+        f"config_id:{compute_config_id(enabled_codes, disabled_codes)}"
+    )
 
 
 def all_py_filenames(files: t.Sequence[str], use_git_ls: bool) -> t.Iterable[str]:

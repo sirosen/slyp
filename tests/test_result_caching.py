@@ -1,4 +1,5 @@
-import os
+import contextlib
+import queue
 from unittest import mock
 
 import pytest
@@ -13,6 +14,12 @@ def _auto_clear_checker_errors():
     _clear_checker_errors()
 
 
+@pytest.fixture
+def in_tmp_path(tmp_path):
+    with contextlib.chdir(tmp_path):
+        yield tmp_path
+
+
 @pytest.fixture(autouse=True)
 def _mock_parallel_processing():
     def fake_apply_async(func, args):
@@ -20,9 +27,19 @@ def _mock_parallel_processing():
         mock_future.get.return_value = func(*args)
         return mock_future
 
-    mock_pool = mock.Mock()
+    mock_pool = mock.MagicMock()
+    mock_pool.__enter__.return_value = mock_pool
     mock_pool.apply_async = fake_apply_async
-    with mock.patch("multiprocessing.pool.Pool", return_value=mock_pool):
+
+    mock_manager = mock.MagicMock()
+    mock_manager.__enter__.return_value = mock_manager
+    mock_manager.Queue.return_value = queue.Queue()
+
+    mock_mp_context = mock.Mock()
+    mock_mp_context.Pool.return_value = mock_pool
+    mock_mp_context.Manager.return_value = mock_manager
+
+    with mock.patch("multiprocessing.get_context", return_value=mock_mp_context):
         yield
 
 
@@ -42,9 +59,8 @@ def run_cli(capsys):
     return _run_cli
 
 
-def test_cli_invocation_simple(run_cli, tmpdir, capsys):
-    os.chdir(tmpdir)
-    tmpdir.join("foo.py").write('x = "foo bar"\n')
+def test_cli_invocation_simple(run_cli, in_tmp_path, capsys):
+    (in_tmp_path / "foo.py").write_text('x = "foo bar"\n')
     with (
         mock.patch("slyp.driver.check_file", wraps=check_file) as mock_check_file,
         mock.patch("slyp.driver.fix_file", wraps=fix_file) as mock_fix_file,
@@ -54,9 +70,8 @@ def test_cli_invocation_simple(run_cli, tmpdir, capsys):
         assert mock_fix_file.call_count == 1
 
 
-def test_double_cli_invocation_hits_cache(run_cli, tmpdir):
-    os.chdir(tmpdir)
-    tmpdir.join("foo.py").write('x = "foo bar"\n')
+def test_double_cli_invocation_hits_cache(run_cli, in_tmp_path):
+    (in_tmp_path / "foo.py").write_text('x = "foo bar"\n')
     with (
         mock.patch("slyp.driver.check_file", wraps=check_file) as mock_check_file,
         mock.patch("slyp.driver.fix_file", wraps=fix_file) as mock_fix_file,
@@ -73,10 +88,9 @@ def test_double_cli_invocation_hits_cache(run_cli, tmpdir):
 
 @pytest.mark.parametrize("cache_on_first_run", (True, False))
 def test_double_cli_invocation_skips_cache_with_no_cache_flag(
-    run_cli, tmpdir, cache_on_first_run
+    run_cli, in_tmp_path, cache_on_first_run
 ):
-    os.chdir(tmpdir)
-    tmpdir.join("foo.py").write('x = "foo bar"\n')
+    (in_tmp_path / "foo.py").write_text('x = "foo bar"\n')
     with (
         mock.patch("slyp.driver.check_file", wraps=check_file) as mock_check_file,
         mock.patch("slyp.driver.fix_file", wraps=fix_file) as mock_fix_file,
@@ -91,9 +105,8 @@ def test_double_cli_invocation_skips_cache_with_no_cache_flag(
         assert mock_fix_file.call_count == 2
 
 
-def test_cache_is_not_populated_under_no_cache(run_cli, tmpdir):
-    os.chdir(tmpdir)
-    tmpdir.join("foo.py").write('x = "foo bar"\n')
+def test_cache_is_not_populated_under_no_cache(run_cli, in_tmp_path):
+    (in_tmp_path / "foo.py").write_text('x = "foo bar"\n')
     with (
         mock.patch("slyp.driver.check_file", wraps=check_file) as mock_check_file,
         mock.patch("slyp.driver.fix_file", wraps=fix_file) as mock_fix_file,
