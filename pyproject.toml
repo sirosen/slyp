@@ -37,6 +37,7 @@ slyp = "slyp:main"
 [dependency-groups]
 coverage = ["coverage"]
 test = ["pytest", {include-group = "coverage"}]
+benchmark = ["pytest", "pytest-codspeed"]
 mypy = ["mypy"]
 docs = [
   "sphinx<8",
@@ -49,7 +50,14 @@ docs = [
 git-only = [".gitignore", "docs/*"]
 
 [tool.flit.sdist]
-include = ["changelog.rst", "tests/**/*.py", "tox.ini", ".flake8", "justfile"]
+include = [
+  "changelog.rst",
+  "tests/**/*.py",
+  "tests/**/*.txt",
+  "tox.ini",
+  ".flake8",
+  "justfile",
+]
 exclude = ["**/.*", "**/*.egg-info", "**/__pycache__"]
 
 
@@ -80,3 +88,6 @@ exclude_lines = [
 profile = "black"
 [tool.mypy]
 strict = true
+[tool.pytest.ini_options]
+norecursedirs = ["tests/benchmark"]
+filterwarnings = ["error"]
