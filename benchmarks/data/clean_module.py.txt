@@ -1,0 +1,182 @@
+"""A representative "clean" module.
+
+This file is stored with a ``.py.txt`` extension so that it is not picked up by
+linters, formatters, or the test suite. It is only read as benchmark input.
+"""
+
+from __future__ import annotations
+
+import dataclasses
+import enum
+import json
+import os
+import typing as t
+
+
+class Severity(enum.Enum):
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+
+
+@dataclasses.dataclass
+class Record:
+    name: str
+    severity: Severity
+    payload: dict[str, t.Any] = dataclasses.field(default_factory=dict)
+    tags: tuple[str, ...] = ()
+
+    def render(self) -> str:
+        rendered_tags = ",".join(sorted(self.tags))
+        return f"{self.severity.value}:{self.name}[{rendered_tags}]"
+
+    def to_json(self) -> str:
+        return json.dumps(
+            {
+                "name": self.name,
+                "severity": self.severity.value,
+                "payload": self.payload,
+                "tags": list(self.tags),
+            },
+            sort_keys=True,
+        )
+
+
+class RecordStore:
+    def __init__(self, records: t.Iterable[Record] | None = None) -> None:
+        self._records: list[Record] = list(records or ())
+        self._by_name: dict[str, list[Record]] = {}
+        for record in self._records:
+            self._by_name.setdefault(record.name, []).append(record)
+
+    def __len__(self) -> int:
+        return len(self._records)
+
+    def __iter__(self) -> t.Iterator[Record]:
+        return iter(self._records)
+
+    def add(self, record: Record) -> None:
+        self._records.append(record)
+        self._by_name.setdefault(record.name, []).append(record)
+
+    def get(self, name: str) -> list[Record]:
+        return list(self._by_name.get(name, ()))
+
+    def filter_by_severity(self, severity: Severity) -> list[Record]:
+        return [record for record in self._records if record.severity is severity]
+
+    def counts(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for record in self._records:
+            key = record.severity.value
+            counts[key] = counts.get(key, 0) + 1
+        return counts
+
+
+def parse_environment(prefix: str = "APP_") -> dict[str, str]:
+    result = {}
+    for key, value in os.environ.items():
+        if not key.startswith(prefix):
+            continue
+        result[key[len(prefix) :].lower()] = value
+    return result
+
+
+def normalize_tags(tags: t.Iterable[str]) -> tuple[str, ...]:
+    seen = set()
+    normalized = []
+    for tag in tags:
+        cleaned = tag.strip().lower()
+        if not cleaned:
+            continue
+        if cleaned in seen:
+            continue
+        seen.add(cleaned)
+        normalized.append(cleaned)
+    return tuple(normalized)
+
+
+def build_records(raw: t.Sequence[dict[str, t.Any]]) -> RecordStore:
+    store = RecordStore()
+    for item in raw:
+        try:
+            severity = Severity(item.get("severity", "info"))
+        except ValueError:
+            severity = Severity.INFO
+
+        store.add(
+            Record(
+                name=str(item["name"]),
+                severity=severity,
+                payload=dict(item.get("payload", {})),
+                tags=normalize_tags(item.get("tags", ())),
+            )
+        )
+    return store
+
+
+def summarize(store: RecordStore, *, limit: int = 10) -> str:
+    counts = store.counts()
+    lines = [
+        "total records: {}".format(len(store)),
+        "distinct names: {}".format(len({record.name for record in store})),
+    ]
+    for severity, count in sorted(counts.items(), key=lambda pair: -pair[1])[:limit]:
+        lines.append(f"  {severity}: {count}")
+    return "\n".join(lines)
+
+
+class Pipeline:
+    def __init__(self, *stages: t.Callable[[Record], Record | None]) -> None:
+        self.stages = stages
+
+    def run(self, store: RecordStore) -> RecordStore:
+        output = RecordStore()
+        for record in store:
+            current: Record | None = record
+            for stage in self.stages:
+                if current is None:
+                    break
+                current = stage(current)
+            if current is not None:
+                output.add(current)
+        return output
+
+
+def drop_debug(record: Record) -> Record | None:
+    if record.severity is Severity.DEBUG:
+        return None
+    return record
+
+
+def retag(record: Record) -> Record:
+    if "internal" in record.tags:
+        return dataclasses.replace(
+            record, tags=tuple(tag for tag in record.tags if tag != "internal")
+        )
+    return record
+
+
+def main(argv: t.Sequence[str] | None = None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="record summarizer")
+    parser.add_argument("files", nargs="*", help="input files")
+    parser.add_argument("--limit", type=int, default=10)
+    parser.add_argument("--quiet", action="store_true")
+    args = parser.parse_args(argv)
+
+    raw: list[dict[str, t.Any]] = []
+    for filename in args.files:
+        with open(filename, encoding="utf-8") as fp:
+            loaded = json.load(fp)
+        if isinstance(loaded, list):
+            raw.extend(loaded)
+        else:
+            raw.append(loaded)
+
+    store = Pipeline(drop_debug, retag).run(build_records(raw))
+    if not args.quiet:
+        print(summarize(store, limit=args.limit))
+    return 0 if len(store) else 1

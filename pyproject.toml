@@ -37,6 +37,7 @@ slyp = "slyp:main"
 [dependency-groups]
 coverage = ["coverage"]
 test = ["pytest", {include-group = "coverage"}]
+bench = ["pytest", "pytest-codspeed"]
 mypy = ["mypy"]
 docs = [
   "sphinx<8",
@@ -45,8 +46,12 @@ docs = [
 ]
 
 
+[tool.pytest.ini_options]
+# benchmarks/ is a separate suite, run via the 'benchmark' tox env
+testpaths = ["tests"]
+
 [tool.check-sdist]
-git-only = [".gitignore", "docs/*"]
+git-only = [".gitignore", "docs/*", "benchmarks/*", "benchmarks/data/*"]
 
 [tool.flit.sdist]
 include = ["changelog.rst", "tests/**/*.py", "tox.ini", ".flake8", "justfile"]

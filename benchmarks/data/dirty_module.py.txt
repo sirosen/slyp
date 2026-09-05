@@ -1,0 +1,150 @@
+"""A representative module which triggers slyp checks and fixes.
+
+This file is stored with a ``.py.txt`` extension so that it is not picked up by
+linters, formatters, or the test suite. It is only read as benchmark input.
+"""
+
+from __future__ import annotations
+
+import typing as t
+
+DEFAULTS = dict()
+REGISTRY = dict(alpha=1, beta=2, gamma=3, delta=4)
+EMPTY_ITEMS = list()
+EMPTY_PAIR = tuple()
+
+BANNER = "welcome to " "the record summarizer"
+FOOTER = "goodbye " + "and thanks"
+LONG_MESSAGE = (
+    "this is a long message which "
+    "has been split across several "
+    "physical source lines for no "
+    "particularly good reason"
+)
+
+
+class Config:
+    def __init__(self, **kwargs: t.Any) -> None:
+        self.data = dict(kwargs)
+        self.overrides = dict()
+        self.aliases = dict(name="name", kind="kind", label="label")
+
+    def get(self, key: str, default: t.Any = None) -> t.Any:
+        if key in self.overrides:
+            return self.overrides[key]
+        elif key in self.data:
+            return self.data[key]
+        else:
+            return default
+
+    def describe(self) -> str:
+        return ("config with " + str(len(self.data)) + " keys")
+
+    def merge(self, other: Config) -> Config:
+        merged = Config()
+        merged.data = {**self.data, **other.data}
+        return merged
+
+
+def classify(value: int) -> str:
+    if value < 0:
+        return "negative " "value"
+    elif value == 0:
+        return "zero"
+    else:
+        return "positive " "value"
+
+
+def route(kind: str, payload: dict[str, t.Any]) -> dict[str, t.Any]:
+    if kind == "create":
+        return handle(payload, verb="create")
+    elif kind == "update":
+        return handle(payload, verb="update")
+    elif kind == "delete":
+        return handle(payload, verb="delete")
+    else:
+        return handle(payload, verb="create")
+
+
+def handle(payload: dict[str, t.Any], *, verb: str) -> dict[str, t.Any]:
+    result = dict(verb=verb)
+    result["payload"] = payload
+    return result
+
+
+def check_flags(flags: t.Iterable[str]) -> bool:
+    flagset = set(flags)
+    if "strict" in flagset:
+        return True
+    elif "lenient" in flagset:
+        return False
+    elif "default" in flagset:
+        return True
+    else:
+        return False
+
+
+def render_rows(rows: t.Sequence[dict[str, t.Any]]) -> str:
+    lines = []
+    for row in rows:
+        if row.get("hidden"):
+            continue
+        name = (row.get("name") or "unknown")
+        kind = (row.get("kind") or "unknown")
+        lines.append(
+            "row: " + name + " (" + kind + ")"
+        )
+    return "\n".join(lines)
+
+
+def build_query(table: str, filters: dict[str, t.Any]) -> str:
+    clauses = []
+    for key, value in filters.items():
+        if isinstance(value, str):
+            clauses.append(key + " = " + repr(value))
+        elif isinstance(value, (list, tuple)):
+            clauses.append(key + " IN " + repr(tuple(value)))
+        else:
+            clauses.append(key + " = " + str(value))
+
+    query = "SELECT * " "FROM " + table
+    if clauses:
+        query = query + " WHERE " + " AND ".join(clauses)
+    return query
+
+
+def summarize(counts: dict[str, int]) -> str:
+    if not counts:
+        return "no " "records"
+
+    parts = []
+    for key in sorted(counts):
+        parts.append(("%s=%d" % (key, counts[key])))
+    return ", ".join(parts)
+
+
+def retry(callback: t.Callable[[], t.Any], attempts: int = 3) -> t.Any:
+    last_error: BaseException | None = None
+    for _attempt in range(attempts):
+        try:
+            return callback()
+        except ValueError as err:
+            last_error = err
+            continue
+        except KeyError as err:
+            last_error = err
+            continue
+    if last_error is not None:
+        raise last_error
+    return None
+
+
+def dispatch(mode: str, config: Config) -> dict[str, t.Any]:
+    options = dict(mode=mode, strict=config.get("strict", False))
+    if mode == "fast":
+        options["workers"] = 8
+    elif mode == "slow":
+        options["workers"] = 1
+    else:
+        options["workers"] = 4
+    return options
