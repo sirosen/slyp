@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import multiprocessing
-import multiprocessing.context
-import multiprocessing.process
 import os
 import queue
 import typing as t
@@ -19,7 +17,8 @@ _SHUTDOWN_GRACE_PERIOD = 1.0
 
 
 class WorkerPool:
-    """Runs a ``Worker`` in several processes, fed from a shared queue of filenames.
+    """
+    Runs a ``Worker`` in several processes, fed from a shared queue of filenames.
 
     Workers pull from one shared queue rather than each being handed a fixed share of
     the work, so a worker which draws slow files does not leave the others idle.
@@ -43,7 +42,10 @@ class WorkerPool:
         # each worker gets its own copy of `self.worker`, whose `initialize` then runs
         # in that process -- so per-worker resources are never shared between them
         processes = [
-            self.mp_ctx.Process(target=self.worker.run, args=(task_queue, result_queue))
+            # type ignore: BaseContext does not define Process, but all subtypes do
+            self.mp_ctx.Process(  # type: ignore[attr-defined]
+                target=self.worker.run, args=(task_queue, result_queue)
+            )
             for _ in range(self.num_workers)
         ]
         for process in processes:
@@ -67,7 +69,7 @@ class WorkerPool:
         self,
         result_queue: multiprocessing.Queue[Result],
         num_tasks: int,
-        processes: list[multiprocessing.process.BaseProcess],
+        processes: list[multiprocessing.Process],
     ) -> t.Iterator[Result]:
         remaining = num_tasks
 
