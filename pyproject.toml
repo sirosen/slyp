@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
+requires = ["flit-core>=3.12.0"]
+build-backend = "flit_core.buildapi"
 
 [project]
 name = "slyp"
@@ -43,6 +43,14 @@ docs = [
   "sphinx-issues<5",
   "furo==2024.7.18",
 ]
+
+
+[tool.check-sdist]
+git-only = [".gitignore", "docs/*"]
+
+[tool.flit.sdist]
+include = ["changelog.rst", "tests/**/*.py", "tox.ini", ".flake8", "justfile"]
+exclude = ["**/.*", "**/*.egg-info", "**/__pycache__"]
 
 
 [tool.coverage.run]
