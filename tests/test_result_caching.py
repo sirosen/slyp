@@ -1,4 +1,4 @@
-import contextlib
+import os
 import queue
 import threading
 from unittest import mock
@@ -18,8 +18,12 @@ def _auto_clear_checker_errors():
 
 @pytest.fixture
 def in_tmp_path(tmp_path):
-    with contextlib.chdir(tmp_path):
+    old = os.getcwd()
+    try:
+        os.chdir(tmp_path)
         yield tmp_path
+    finally:
+        os.chdir(old)
 
 
 class FakeProcess:

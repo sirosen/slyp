@@ -31,7 +31,7 @@ class CacheInitializer:
             gitignore_path.write_text("*\n")
 
     def create_writer_connection(self) -> sqlite3.Connection:
-        return sqlite3.connect(str(self.filepath), autocommit=False)
+        return sqlite3.connect(str(self.filepath))
 
     def create_reader_connection(self) -> sqlite3.Connection:
         return sqlite3.connect(str(self.filepath))

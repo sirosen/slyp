@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import multiprocessing
+import sys
 import threading
 import typing as t
 
@@ -10,6 +11,11 @@ from ..hashable_file import HashableFile
 from ._initializer import CacheInitializer
 from ._reader import CacheReaderFactory
 from ._writer import CacheWriterFactory
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class MultiprocessWriteHandle:
@@ -84,5 +90,5 @@ class NullCacheManagerShim:
     @contextlib.contextmanager
     def active_context(
         self, mp_ctx: multiprocessing.context.BaseContext
-    ) -> t.Iterator[t.Self]:
+    ) -> t.Iterator[Self]:
         yield self

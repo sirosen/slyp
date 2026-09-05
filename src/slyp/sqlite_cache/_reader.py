@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import sqlite3
+import sys
 import types
-import typing as t
 
 from ..hashable_file import HashableFile
 from ._initializer import CacheInitializer
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class FileCacheReader:
@@ -28,7 +33,7 @@ class FileCacheReader:
     def close(self) -> None:
         self.conn.close()
 
-    def __enter__(self) -> t.Self:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
