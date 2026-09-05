@@ -17,7 +17,7 @@ def run_cst_checkers(file_obj: HashableFile) -> set[tuple[int, str]]:
         tree = libcst.parse_module(file_obj.binary_content)
     except (libcst.ParserSyntaxError, libcst.CSTValidationError):
         return {(0, "X001")}
-    wrapper = libcst.MetadataWrapper(tree)
+    wrapper = libcst.MetadataWrapper(tree, unsafe_skip_copy=True)
     for visitor in _VISITORS:
         visitor.filename = file_obj.filename
         wrapper.visit(visitor)
