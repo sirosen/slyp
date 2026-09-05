@@ -30,14 +30,22 @@ class CacheInitializer:
         if not gitignore_path.exists():
             gitignore_path.write_text("*\n")
 
-    def create_connection(self) -> sqlite3.Connection:
-        creating = not self.filepath.exists()
-        conn = sqlite3.connect(str(self.filepath), autocommit=False)
-        if creating:
-            self.provision_db(conn)
-        return conn
+    def create_writer_connection(self) -> sqlite3.Connection:
+        return sqlite3.connect(str(self.filepath), autocommit=False)
 
-    def provision_db(self, conn: sqlite3.Connection) -> None:
+    def create_reader_connection(self) -> sqlite3.Connection:
+        return sqlite3.connect(str(self.filepath))
+
+    def ensure_db_exists(self) -> None:
+        self.init_dir()
+        if not self.filepath.exists():
+            conn = self.create_writer_connection()
+            try:
+                self._provision_db(conn)
+            finally:
+                conn.close()
+
+    def _provision_db(self, conn: sqlite3.Connection) -> None:
         # currently, the tables are:
         # - file_hashes (the data we care about)
         # - slyp_db_metadata (config values, like schema versions)
@@ -64,8 +72,3 @@ class CacheInitializer:
             [("database_schema_version", "1")],
         )
         conn.commit()
-
-    def ensure_db_exists(self) -> None:
-        self.init_dir()
-        if not self.filepath.exists():
-            self.create_connection().close()

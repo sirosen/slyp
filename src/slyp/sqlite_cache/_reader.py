@@ -48,7 +48,7 @@ class CacheReaderFactory:
         self.signature = evaluation_signature
 
     def make_reader(self) -> FileCacheReader:
-        conn = self.initializer.create_connection()
+        conn = self.initializer.create_reader_connection()
         return FileCacheReader(conn, self.signature)
 
     @staticmethod

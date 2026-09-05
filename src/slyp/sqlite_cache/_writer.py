@@ -56,5 +56,5 @@ class CacheWriterFactory:
         self.signature = evaluation_signature
 
     def make_writer(self) -> FileCacheWriter:
-        conn = self.initializer.create_connection()
+        conn = self.initializer.create_writer_connection()
         return FileCacheWriter(conn, self.signature)
