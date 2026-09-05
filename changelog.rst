@@ -6,6 +6,8 @@ Unreleased
 
 .. changelog-unreleased-marker
 
+- Convert the cache from a directory of files to a sqlite database.
+
 0.9.0
 -----
 
