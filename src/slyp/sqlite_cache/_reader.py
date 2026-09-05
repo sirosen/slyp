@@ -50,13 +50,3 @@ class CacheReaderFactory:
     def make_reader(self) -> FileCacheReader:
         conn = self.initializer.create_reader_connection()
         return FileCacheReader(conn, self.signature)
-
-    @staticmethod
-    def agnostic_contains_file(
-        file: HashableFile, reader: FileCacheReader | CacheReaderFactory
-    ) -> bool:
-        """Check either reader type. If one is created via a factory, also close it."""
-        if isinstance(reader, FileCacheReader):
-            return reader.contains_file(file)
-        with reader.make_reader() as ephemeral_reader:
-            return ephemeral_reader.contains_file(file)

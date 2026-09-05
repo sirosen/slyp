@@ -5,26 +5,21 @@ import glob
 import hashlib
 import json
 import multiprocessing
-import multiprocessing.pool
 import os
 import stat
 import subprocess
 import sys
-import time
 import typing as t
 
 from slyp.checkers import check_file
 from slyp.codes import CODE_MAP
+from slyp.executor import SlypWorker, WorkerPool
 from slyp.fixer import fix_file
 from slyp.hashable_file import HashableFile
-from slyp.result import Message, Result
+from slyp.result import Result
 from slyp.sqlite_cache import (
     CacheInitializer,
-    CacheReaderFactory,
-    FileCacheReader,
-    FileCacheWriter,
     MultiprocessCacheManager,
-    MultiprocessWriteHandle,
     NullCacheManagerShim,
 )
 
@@ -78,7 +73,7 @@ def parallel_process(
     args: argparse.Namespace, disabled_codes: set[str], enabled_codes: set[str]
 ) -> bool:
     if args.no_cache:
-        return _run_pool(args, disabled_codes, enabled_codes, NullCacheManagerShim())
+        return _run_workers(args, disabled_codes, enabled_codes, NullCacheManagerShim())
     else:
         cache_initializer = CacheInitializer()
         cache_initializer.ensure_db_exists()
@@ -87,7 +82,7 @@ def parallel_process(
         )
 
         cache_manager = MultiprocessCacheManager(cache_initializer, signature)
-        return _run_pool(
+        return _run_workers(
             args,
             disabled_codes,
             enabled_codes,
@@ -95,70 +90,28 @@ def parallel_process(
         )
 
 
-def _run_pool(
+def _run_workers(
     args: argparse.Namespace,
     disabled_codes: set[str],
     enabled_codes: set[str],
     cache_manager: MultiprocessCacheManager | NullCacheManagerShim,
 ) -> bool:
-    mp_ctx = multiprocessing.get_context("spawn")
-    futures: dict[str, multiprocessing.pool.AsyncResult[Result]] = {}
-
-    with (
-        cache_manager.active_context(mp_ctx) as cache_context,
-        mp_ctx.Pool() as process_pool,
-    ):
-        write_handle = cache_context.make_write_handle()
-
-        for filename in all_py_filenames(args.files, args.use_git_ls):
-            if args.verbosity >= 1:
-                print(f"slpy: processing {filename}", file=sys.stderr)
-
-            futures[filename] = process_pool.apply_async(
-                process_file,
-                (
-                    filename,
-                    args.only,
-                    disabled_codes,
-                    enabled_codes,
-                    cache_manager.reader_factory,
-                    write_handle,
-                ),
-            )
-
-        success = handle_futures(args, futures)
-    return success
-
-
-def handle_futures(
-    args: argparse.Namespace,
-    futures: dict[str, multiprocessing.pool.AsyncResult[Result]],
-) -> bool:
+    mp_ctx = multiprocessing.get_context("fork")
     success = True
 
-    while futures:
-        ready = set()
-        for filename, future in futures.items():
-            if future.ready():
-                ready.add(filename)
-        if not ready:
-            time.sleep(0.05)
+    with cache_manager.active_context(mp_ctx) as cache_context:
+        pool = WorkerPool(
+            mp_ctx,
+            SlypWorker(
+                args.only,
+                disabled_codes,
+                enabled_codes,
+                cache_manager.reader_factory,
+                cache_context.make_write_handle(),
+            ),
+        )
 
-        for filename in ready:
-            future = futures.pop(filename)
-            try:
-                result = future.get()
-            except Exception as e:
-                result = Result(
-                    success=False,
-                    messages=[
-                        Message(f"slyp error on '{filename}': {e}"),
-                        Message(
-                            f"slyp error on '{filename}': {e.__traceback__}",
-                            verbosity=2,
-                        ),
-                    ],
-                )
+        for result in pool.run(_announced_filenames(args)):
             for message in result.messages:
                 if message.verbosity <= args.verbosity:
                     print(message.message)
@@ -168,36 +121,11 @@ def handle_futures(
     return success
 
 
-def process_file(
-    filename: str,
-    only: str | None,
-    disabled_codes: set[str],
-    enabled_codes: set[str],
-    cache_reader: FileCacheReader | CacheReaderFactory | None = None,
-    cache_writer: FileCacheWriter | MultiprocessWriteHandle | None = None,
-) -> Result:
-    result = Result(success=True, messages=[])
-    file_obj = HashableFile(filename)
-
-    if cache_reader is not None:
-        if CacheReaderFactory.agnostic_contains_file(file_obj, cache_reader):
-            result.messages.append(
-                Message(message=f"cache hit: {filename}", verbosity=2)
-            )
-            return result
-
-    if only in ("fix", None):
-        result = result.join(fix_file(file_obj))
-    if only in ("lint", None):
-        result = result.join(
-            check_file(
-                file_obj, disabled_codes=disabled_codes, enabled_codes=enabled_codes
-            )
-        )
-
-    if cache_writer and result.success and only is None:
-        cache_writer.write(file_obj)
-    return result
+def _announced_filenames(args: argparse.Namespace) -> t.Iterator[str]:
+    for filename in all_py_filenames(args.files, args.use_git_ls):
+        if args.verbosity >= 1:
+            print(f"slpy: processing {filename}", file=sys.stderr)
+        yield filename
 
 
 def compute_config_id(enabled_codes: set[str], disabled_codes: set[str]) -> str:
