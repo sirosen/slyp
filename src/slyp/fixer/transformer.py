@@ -114,13 +114,20 @@ CollectionLiteralNode = t.TypeVar(
 
 
 class SlypTransformer(libcst.CSTTransformer):
-    METADATA_DEPENDENCIES = (
-        libcst.metadata.PositionProvider,
-        libcst.metadata.ParentNodeProvider,
-    )
+    METADATA_DEPENDENCIES = (libcst.metadata.PositionProvider,)
 
     def __init__(self, disabled_line_ranges: list[tuple[int, int | float]]) -> None:
         self.disabled_line_ranges = disabled_line_ranges
+        # this stack of nodes acts similarly to the parent node metadata, but is
+        # significantly more efficient
+        self.ancestors: list[libcst.CSTNode] = []
+
+    def on_visit(self, node: libcst.CSTNode) -> bool:
+        self.ancestors.append(node)
+
+        # NOTE: skipping the generic visit methods makes the transformer more efficient,
+        # NOTE: but requires that we never use visit_* methods.
+        return True
 
     def on_leave(
         self, original_node: libcst.CSTNodeT, updated_node: libcst.CSTNodeT
@@ -129,6 +136,7 @@ class SlypTransformer(libcst.CSTTransformer):
         | libcst.RemovalSentinel
         | libcst.FlattenSentinel[libcst.CSTNodeT]
     ):
+        self.ancestors.pop()
         new_updated_node = super().on_leave(original_node, updated_node)
         if new_updated_node != updated_node:
             # if the node has been updated, check if disabled
@@ -205,9 +213,7 @@ class SlypTransformer(libcst.CSTTransformer):
             if num_parens_to_unwrap <= 0:
                 return updated_node
 
-            parent = self.get_metadata(
-                libcst.metadata.ParentNodeProvider, original_node
-            )
+            parent = self.ancestors[-1]
             # check if the parent of the node is *-expansion of an arg
             # or an `if` or `while` without whitespace before the condition
             if libcst.matchers.matches(
