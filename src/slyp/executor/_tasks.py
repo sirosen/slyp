@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from slyp.checkers import check_file
+from slyp.constants import ValidMode
 from slyp.fixer import fix_file
 from slyp.hashable_file import HashableFile
 from slyp.result import Message, Result
@@ -13,7 +14,7 @@ from slyp.sqlite_cache import (
 
 def process_file(
     filename: str,
-    only: str | None,
+    mode: ValidMode,
     disabled_codes: set[str],
     enabled_codes: set[str],
     cache_reader: FileCacheReader | None = None,
@@ -29,15 +30,17 @@ def process_file(
             )
             return result
 
-    if only in ("fix", None):
+    if mode in ("fix", "default"):
         result = result.join(fix_file(file_obj))
-    if only in ("lint", None):
+    if mode in ("lint", "default"):
         result = result.join(
             check_file(
                 file_obj, disabled_codes=disabled_codes, enabled_codes=enabled_codes
             )
         )
 
-    if cache_writer and result.success and only is None:
+    # results are only cached in the default mode because the mode is not
+    # part of the signature (unclear whether or not it should be)
+    if cache_writer and result.success and mode == "default":
         cache_writer.write(file_obj)
     return result

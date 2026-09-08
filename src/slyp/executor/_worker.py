@@ -4,6 +4,7 @@ import multiprocessing
 import multiprocessing.context
 import multiprocessing.process
 
+from slyp.constants import ValidMode
 from slyp.result import Message, Result
 from slyp.sqlite_cache import (
     CacheReaderFactory,
@@ -21,13 +22,13 @@ class SlypWorker:
 
     def __init__(
         self,
-        only: str | None,
+        mode: ValidMode,
         disabled_codes: set[str],
         enabled_codes: set[str],
         reader_factory: CacheReaderFactory | None,
         cache_writer: MultiprocessWriteHandle | None,
     ) -> None:
-        self.only = only
+        self.mode = mode
         self.disabled_codes = disabled_codes
         self.enabled_codes = enabled_codes
         self.reader_factory = reader_factory
@@ -48,7 +49,7 @@ class SlypWorker:
     def handle_file(self, filename: str) -> Result:
         return process_file(
             filename,
-            self.only,
+            self.mode,
             self.disabled_codes,
             self.enabled_codes,
             self.cache_reader,
