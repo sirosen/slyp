@@ -13,7 +13,7 @@ a = "foo\\\\ " r"bar\\."
 def test_fix_of_stdin_writes_to_stdout(capsys):
     mock_args = mock.Mock()
     mock_args.verbosity = 0
-    mock_args.only = "fix"
+    mock_args.mode = "fix"
 
     fake_stdin = mock.Mock()
     fake_stdin.buffer = io.BytesIO()
@@ -24,7 +24,7 @@ def test_fix_of_stdin_writes_to_stdout(capsys):
     fake_stdin.buffer.seek(0)
 
     with mock.patch.object(sys, "stdin", fake_stdin):
-        process_stdin(mock_args, [], [])
+        process_stdin(mock_args)
 
     out, _err = capsys.readouterr()
     assert out == modsource
@@ -33,7 +33,9 @@ def test_fix_of_stdin_writes_to_stdout(capsys):
 def test_lint_of_stdin_writes_to_stdout(capsys):
     mock_args = mock.Mock()
     mock_args.verbosity = 0
-    mock_args.only = "lint"
+    mock_args.mode = "lint"
+    mock_args.disabled_codes = []
+    mock_args.enabled_codes = []
 
     fake_stdin = mock.Mock()
     fake_stdin.buffer = io.BytesIO()
@@ -41,7 +43,7 @@ def test_lint_of_stdin_writes_to_stdout(capsys):
     fake_stdin.buffer.seek(0)
 
     with mock.patch.object(sys, "stdin", fake_stdin):
-        process_stdin(mock_args, [], [])
+        process_stdin(mock_args)
 
     out, _err = capsys.readouterr()
     assert "unnecessary string concat (E100)" in out

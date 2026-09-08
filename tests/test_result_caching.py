@@ -69,15 +69,14 @@ def _mock_parallel_processing():
 @pytest.fixture
 def run_cli(capsys):
     def _run_cli(args, assert_exit_code=0):
-        with mock.patch("sys.argv", ["slyp"] + args):
-            retcode = 0
-            try:
-                cli_main()
-            except SystemExit as e:
-                retcode = e.code
-            if assert_exit_code is not None:
-                assert retcode == assert_exit_code
-            return retcode
+        retcode = 0
+        try:
+            cli_main(args)
+        except SystemExit as e:
+            retcode = e.code
+        if assert_exit_code is not None:
+            assert retcode == assert_exit_code
+        return retcode
 
     return _run_cli
 

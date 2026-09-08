@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import argparse
+import dataclasses
 import glob
 import hashlib
 import json
@@ -13,6 +13,7 @@ import typing as t
 
 from slyp.checkers import check_file
 from slyp.codes import CODE_MAP
+from slyp.constants import CONTRACT_VERSION, ValidMode
 from slyp.executor import SlypWorker, WorkerPool
 from slyp.fixer import fix_file
 from slyp.hashable_file import HashableFile
@@ -23,44 +24,51 @@ from slyp.sqlite_cache import (
     NullCacheManagerShim,
 )
 
-DEFAULT_DISABLED_CODES: set[str] = {"W201", "W202", "W203"}
-CONTRACT_VERSION: str = "1.7"
+
+@dataclasses.dataclass(slots=True)
+class SlypArgs:
+    """Fully normalized arguments, as parsed from the CLI."""
+
+    mode: ValidMode
+    verbosity: int
+    use_git_ls: bool
+    disabled_codes: set[str]
+    enabled_codes: set[str]
+    no_cache: bool
+    files: t.Sequence[str]
 
 
-def driver_main(args: argparse.Namespace) -> bool:
-    # parse inputs from comma delimited lists
-    disabled_codes = {x for x in args.disable.split(",") if x != ""}
-    enabled_codes = {x for x in args.enable.split(",") if x != ""}
-    # add default disables if "all" is not in --enable
-    if "all" not in enabled_codes:
-        disabled_codes = disabled_codes | DEFAULT_DISABLED_CODES
-
+def driver_main(args: SlypArgs) -> bool:
     if args.files == ["-"]:
-        return process_stdin(args, disabled_codes, enabled_codes)
+        return process_stdin(args)
     else:
-        return parallel_process(args, disabled_codes, enabled_codes)
+        return parallel_process(args)
 
 
-def process_stdin(
-    args: argparse.Namespace, disabled_codes: set[str], enabled_codes: set[str]
-) -> bool:
+def process_stdin(args: SlypArgs) -> bool:
     result = Result(success=True, messages=[])
     file_obj = HashableFile("-")
 
-    if args.only == "fix":
-        result = fix_file(file_obj)
-        message_stream = sys.stderr
-    elif args.only == "lint":
-        result = result.join(
-            check_file(
-                file_obj,
-                disabled_codes=disabled_codes,
-                enabled_codes=enabled_codes,
+    match args.mode:
+        case "fix":
+            result = fix_file(file_obj)
+            message_stream = sys.stderr
+        case "lint":
+            result = result.join(
+                check_file(
+                    file_obj,
+                    disabled_codes=args.disabled_codes,
+                    enabled_codes=args.enabled_codes,
+                )
             )
-        )
-        message_stream = sys.stdout
-    else:
-        raise NotImplementedError("stdin with unexpected --only value")
+            message_stream = sys.stdout
+        # parsing + validation should protect us from ever reaching this
+        case "list_codes" | "default":
+            raise NotImplementedError(
+                "stdin without --only value; should be unreachable"
+            )
+        case _ as unreachable:
+            t.assert_never(unreachable)
 
     for message in result.messages:
         if message.verbosity <= args.verbosity:
@@ -69,32 +77,20 @@ def process_stdin(
     return result.success
 
 
-def parallel_process(
-    args: argparse.Namespace, disabled_codes: set[str], enabled_codes: set[str]
-) -> bool:
+def parallel_process(args: SlypArgs) -> bool:
     if args.no_cache:
-        return _run_workers(args, disabled_codes, enabled_codes, NullCacheManagerShim())
+        return _run_workers(args, NullCacheManagerShim())
     else:
         cache_initializer = CacheInitializer()
         cache_initializer.ensure_db_exists()
-        signature = compute_evaluation_signature(
-            CONTRACT_VERSION, enabled_codes, disabled_codes
-        )
+        signature = compute_evaluation_signature(CONTRACT_VERSION, args)
 
         cache_manager = MultiprocessCacheManager(cache_initializer, signature)
-        return _run_workers(
-            args,
-            disabled_codes,
-            enabled_codes,
-            cache_manager,
-        )
+        return _run_workers(args, cache_manager)
 
 
 def _run_workers(
-    args: argparse.Namespace,
-    disabled_codes: set[str],
-    enabled_codes: set[str],
-    cache_manager: MultiprocessCacheManager | NullCacheManagerShim,
+    args: SlypArgs, cache_manager: MultiprocessCacheManager | NullCacheManagerShim
 ) -> bool:
     mp_ctx = multiprocessing.get_context("fork")
     success = True
@@ -103,9 +99,9 @@ def _run_workers(
         pool = WorkerPool(
             mp_ctx,
             SlypWorker(
-                args.only,
-                disabled_codes,
-                enabled_codes,
+                args.mode,
+                args.disabled_codes,
+                args.enabled_codes,
                 cache_manager.reader_factory,
                 cache_context.make_write_handle(),
             ),
@@ -121,21 +117,21 @@ def _run_workers(
     return success
 
 
-def _announced_filenames(args: argparse.Namespace) -> t.Iterator[str]:
+def _announced_filenames(args: SlypArgs) -> t.Iterator[str]:
     for filename in all_py_filenames(args.files, args.use_git_ls):
         if args.verbosity >= 1:
             print(f"slpy: processing {filename}", file=sys.stderr)
         yield filename
 
 
-def compute_config_id(enabled_codes: set[str], disabled_codes: set[str]) -> str:
+def compute_config_id(args: SlypArgs) -> str:
     # now we get the codes which are defined, convert to a string
     all_codes: str = json.dumps(sorted(CODE_MAP.keys()))
     # get the enabled/disabled codes, and make that a string
     code_opts = json.dumps(
         {
-            "disabled": sorted(enabled_codes),
-            "enabled": sorted(disabled_codes),
+            "disabled": sorted(args.enabled_codes),
+            "enabled": sorted(args.disabled_codes),
         }
     )
 
@@ -147,13 +143,8 @@ def compute_config_id(enabled_codes: set[str], disabled_codes: set[str]) -> str:
     return config_hash.hexdigest()
 
 
-def compute_evaluation_signature(
-    contract_version: str, enabled_codes: set[str], disabled_codes: set[str]
-) -> str:
-    return (
-        f"contract:{contract_version}/"
-        f"config_id:{compute_config_id(enabled_codes, disabled_codes)}"
-    )
+def compute_evaluation_signature(contract_version: str, args: SlypArgs) -> str:
+    return f"contract:{contract_version}/config_id:{compute_config_id(args)}"
 
 
 def all_py_filenames(files: t.Sequence[str], use_git_ls: bool) -> t.Iterable[str]:
