@@ -20,19 +20,16 @@ def _patch_file_io_operations(stdlib_module_source):
         yield
 
 
-@pytest.fixture
-def corpus_filename(tmp_path):
-    return tmp_path / "corpus.py"
-
-
 @pytest.mark.benchmark
-def test_benchmark_process_file(benchmark, corpus_filename):
+@pytest.mark.parametrize("num_files", (1, 2, 5, 10, 20))
+def test_benchmark_process_files(benchmark, num_files):
     def _check():
-        process_file(
-            str(corpus_filename),
-            mode="default",
-            disabled_codes=set(),
-            enabled_codes=set(),
-        )
+        for i in range(num_files):
+            process_file(
+                f"/foo{i}.py",
+                mode="default",
+                disabled_codes=set(),
+                enabled_codes=set(),
+            )
 
     benchmark(_check)
