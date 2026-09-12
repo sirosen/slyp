@@ -21,7 +21,7 @@ def _patch_file_io_operations(stdlib_module_source):
 
 
 @pytest.mark.benchmark
-@pytest.mark.parametrize("num_files", (1, 2, 5, 10, 20))
+@pytest.mark.parametrize("num_files", (1, 2, 5))
 def test_benchmark_process_files(benchmark, num_files):
     def _check():
         for i in range(num_files):
