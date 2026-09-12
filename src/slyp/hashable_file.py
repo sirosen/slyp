@@ -13,13 +13,16 @@ class HashableFile:
 
     @property
     def binary_content(self) -> bytes:
-        if self.is_stdio:
-            if self._binary_content is None:
-                self._binary_content = sys.stdin.buffer.read()
-        elif self._binary_content is None:
-            with open(self.filename, "rb") as fp:
-                self._binary_content = fp.read()
+        if self._binary_content is None:
+            self._binary_content = self._read()
         return self._binary_content
+
+    def _read(self) -> bytes:
+        if self.is_stdio:
+            return sys.stdin.buffer.read()
+
+        with open(self.filename, "rb") as fp:
+            return fp.read()
 
     @property
     def sha(self) -> str:
@@ -28,15 +31,16 @@ class HashableFile:
         return self._sha
 
     def write(self, content: bytes) -> None:
-        if self.is_stdio:
-            sys.stdout.buffer.write(content)
-            return
-
-        with open(self.filename, "wb") as fp:
-            fp.write(content)
-
+        self._write(content)
         self._sha = None
         self._binary_content = content
+
+    def _write(self, content: bytes, /) -> None:
+        if self.is_stdio:
+            sys.stdout.buffer.write(content)
+        else:
+            with open(self.filename, "wb") as fp:
+                fp.write(content)
 
     @property
     def is_stdio(self) -> bool:
