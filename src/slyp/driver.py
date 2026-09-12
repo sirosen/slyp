@@ -116,8 +116,8 @@ def compute_config_id(args: SlypRequest) -> str:
     # get the enabled/disabled codes, and make that a string
     code_opts = json.dumps(
         {
-            "disabled": sorted(args.enabled_codes),
-            "enabled": sorted(args.disabled_codes),
+            "disabled": sorted(args.disabled_codes),
+            "enabled": sorted(args.enabled_codes),
         }
     )
 
