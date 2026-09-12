@@ -20,14 +20,11 @@ def run_ast_checkers(file_obj: HashableFile) -> set[tuple[int, str]]:
         return {(0, "X001")}
 
     for visitor in _VISITORS:
-        visitor.filename = file_obj.filename
         visitor.visit(tree)
-    return {
-        (lineno, code)
-        for visitor in _VISITORS
-        for (lineno, error_filename, code) in visitor.errors
-        if error_filename == file_obj.filename
-    }
+
+    findings = {err for visitor in _VISITORS for err in visitor.errors}
+    _clear_visitor_errors()
+    return findings
 
 
 def _clear_visitor_errors() -> None:

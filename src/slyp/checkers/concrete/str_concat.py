@@ -26,7 +26,7 @@ class StrConcatErrorCollector(ErrorCollectingVisitor):
             node.whitespace_between, SIMPLE_WHITESPACE_NO_NEWLINE_MATCHER
         ):
             lpos = self.get_metadata(libcst.metadata.PositionProvider, node.left).start
-            self.errors.add((lpos.line, self.filename, "E100"))
+            self.errors.add((lpos.line, "E100"))
 
     def visit_BinaryOperation(self, node: libcst.BinaryOperation) -> None:
         # check for 'unnecessary string concat' situations with explicit `+`
@@ -51,4 +51,4 @@ class StrConcatErrorCollector(ErrorCollectingVisitor):
             lpos = self.get_metadata(libcst.metadata.PositionProvider, node.left).end
             rpos = self.get_metadata(libcst.metadata.PositionProvider, node.right).start
             if lpos.line == rpos.line:
-                self.errors.add((lpos.line, self.filename, "E101"))
+                self.errors.add((lpos.line, "E101"))

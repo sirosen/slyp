@@ -2,15 +2,13 @@ import textwrap
 
 import pytest
 
-from slyp.checkers import _clear_errors, check_file
+from slyp.checkers import check_file
 from slyp.fixer import fix_file
 from slyp.hashable_file import HashableFile
 
 
 @pytest.fixture
 def check_text(tmpdir):
-    _clear_errors()
-
     def _check_text(
         text,
         *,

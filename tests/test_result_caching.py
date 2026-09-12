@@ -5,15 +5,9 @@ from unittest import mock
 
 import pytest
 
-from slyp.checkers import _clear_errors as _clear_checker_errors
 from slyp.checkers import check_file
 from slyp.cli import main as cli_main
 from slyp.fixer import fix_file
-
-
-@pytest.fixture(autouse=True)
-def _auto_clear_checker_errors():
-    _clear_checker_errors()
 
 
 @pytest.fixture
