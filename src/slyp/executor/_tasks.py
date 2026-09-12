@@ -4,7 +4,7 @@ from slyp.checkers import check_file
 from slyp.constants import ValidMode
 from slyp.fixer import fix_file
 from slyp.hashable_file import HashableFile
-from slyp.result import Message, Result
+from slyp.models import Message, Result
 from slyp.sqlite_cache import (
     FileCacheReader,
     FileCacheWriter,

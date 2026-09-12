@@ -5,7 +5,7 @@ import multiprocessing.context
 import multiprocessing.process
 
 from slyp.constants import ValidMode
-from slyp.result import Message, Result
+from slyp.models import Message, Result
 from slyp.sqlite_cache import (
     CacheReaderFactory,
     FileCacheReader,

@@ -5,7 +5,7 @@ import re
 import libcst
 
 from slyp.hashable_file import HashableFile
-from slyp.result import Message, Result
+from slyp.models import Message, Result
 
 from .transformer import SlypTransformer
 
