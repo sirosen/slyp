@@ -14,9 +14,8 @@ _ENABLE_RE = re.compile(rb"#\s*((slyp:\s*enable(\=format)?)|(fmt:\s*on))(\s|$)")
 
 
 def fix_file(file_obj: HashableFile) -> Result:
-    """returns True if no changes were needed"""
     try:
-        new_data = _fix_data(file_obj.binary_content)
+        new_data, parsed_cst = _fix_data(file_obj.binary_content)
     # ignore failures to parse and treat these as "unchanged"
     # linting will flag these independently
     except (RecursionError, libcst.ParserSyntaxError, libcst.CSTValidationError):
@@ -26,6 +25,8 @@ def fix_file(file_obj: HashableFile) -> Result:
                 Message(f"slyp: failed to parse {file_obj.filename}", verbosity=1)
             ],
         )
+
+    file_obj.parsed_cst = parsed_cst
 
     if new_data == file_obj.binary_content:
         if file_obj.is_stdio:
@@ -39,14 +40,14 @@ def fix_file(file_obj: HashableFile) -> Result:
     return Result(messages=[Message(f"slyp: fixed {file_obj.filename}")], success=False)
 
 
-def _fix_data(content: bytes) -> bytes:
+def _fix_data(content: bytes) -> tuple[bytes, libcst.Module]:
     disabled_line_ranges = _find_disabled_ranges(content)
     raw_tree = libcst.parse_module(content)
     wrapped_tree = libcst.MetadataWrapper(raw_tree, unsafe_skip_copy=True)
 
     tree = wrapped_tree.visit(SlypTransformer(disabled_line_ranges))
 
-    return tree.code.encode(tree.encoding)
+    return tree.code.encode(tree.encoding), tree
 
 
 def _find_disabled_ranges(content: bytes) -> list[tuple[int, int | float]]:

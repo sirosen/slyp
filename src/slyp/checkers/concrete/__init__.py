@@ -13,11 +13,16 @@ _VISITORS: list[ErrorCollectingVisitor] = [
 
 
 def run_cst_checkers(file_obj: HashableFile) -> set[tuple[int, str]]:
-    try:
-        tree = libcst.parse_module(file_obj.binary_content)
-    except (libcst.ParserSyntaxError, libcst.CSTValidationError):
-        return {(0, "X001")}
+    if file_obj.parsed_cst is None:
+        try:
+            tree = libcst.parse_module(file_obj.binary_content)
+        except (libcst.ParserSyntaxError, libcst.CSTValidationError):
+            return {(0, "X001")}
+    else:
+        tree = file_obj.parsed_cst
+
     wrapper = libcst.MetadataWrapper(tree, unsafe_skip_copy=True)
+
     for visitor in _VISITORS:
         visitor.filename = file_obj.filename
         wrapper.visit(visitor)
