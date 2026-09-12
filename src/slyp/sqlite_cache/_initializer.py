@@ -31,7 +31,9 @@ class CacheInitializer:
             gitignore_path.write_text("*\n")
 
     def create_writer_connection(self) -> sqlite3.Connection:
-        return sqlite3.connect(str(self.filepath))
+        conn = sqlite3.connect(str(self.filepath))
+        conn.executescript("PRAGMA journal_mode=WAL;")
+        return conn
 
     def create_reader_connection(self) -> sqlite3.Connection:
         return sqlite3.connect(str(self.filepath))
