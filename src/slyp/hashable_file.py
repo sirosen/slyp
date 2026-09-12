@@ -4,12 +4,15 @@ import dataclasses
 import hashlib
 import sys
 
+import libcst
+
 
 @dataclasses.dataclass
 class HashableFile:
     filename: str
     _sha: str | None = None
     _binary_content: bytes | None = None
+    parsed_cst: libcst.Module | None = None
 
     @property
     def binary_content(self) -> bytes:

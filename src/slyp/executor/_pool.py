@@ -5,7 +5,7 @@ import os
 import queue
 import typing as t
 
-from slyp.result import Message, Result
+from slyp.models import Message, Result
 
 from ._worker import SlypWorker
 

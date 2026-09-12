@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import glob
 import hashlib
 import json
@@ -13,11 +12,11 @@ import typing as t
 
 from slyp.checkers import check_file
 from slyp.codes import CODE_MAP
-from slyp.constants import CONTRACT_VERSION, ValidMode
+from slyp.constants import CONTRACT_VERSION
 from slyp.executor import SlypWorker, WorkerPool
 from slyp.fixer import fix_file
 from slyp.hashable_file import HashableFile
-from slyp.result import Result
+from slyp.models import Result, SlypRequest
 from slyp.sqlite_cache import (
     CacheInitializer,
     MultiprocessCacheManager,
@@ -25,27 +24,14 @@ from slyp.sqlite_cache import (
 )
 
 
-@dataclasses.dataclass(slots=True)
-class SlypArgs:
-    """Fully normalized arguments, as parsed from the CLI."""
-
-    mode: ValidMode
-    verbosity: int
-    use_git_ls: bool
-    disabled_codes: set[str]
-    enabled_codes: set[str]
-    no_cache: bool
-    files: t.Sequence[str]
-
-
-def driver_main(args: SlypArgs) -> bool:
+def driver_main(args: SlypRequest) -> bool:
     if args.files == ["-"]:
         return process_stdin(args)
     else:
         return parallel_process(args)
 
 
-def process_stdin(args: SlypArgs) -> bool:
+def process_stdin(args: SlypRequest) -> bool:
     result = Result(success=True, messages=[])
     file_obj = HashableFile("-")
 
@@ -77,7 +63,7 @@ def process_stdin(args: SlypArgs) -> bool:
     return result.success
 
 
-def parallel_process(args: SlypArgs) -> bool:
+def parallel_process(args: SlypRequest) -> bool:
     if args.no_cache:
         return _run_workers(args, NullCacheManagerShim())
     else:
@@ -90,7 +76,7 @@ def parallel_process(args: SlypArgs) -> bool:
 
 
 def _run_workers(
-    args: SlypArgs, cache_manager: MultiprocessCacheManager | NullCacheManagerShim
+    args: SlypRequest, cache_manager: MultiprocessCacheManager | NullCacheManagerShim
 ) -> bool:
     mp_ctx = multiprocessing.get_context("fork")
     success = True
@@ -117,14 +103,14 @@ def _run_workers(
     return success
 
 
-def _announced_filenames(args: SlypArgs) -> t.Iterator[str]:
+def _announced_filenames(args: SlypRequest) -> t.Iterator[str]:
     for filename in all_py_filenames(args.files, args.use_git_ls):
         if args.verbosity >= 1:
             print(f"slpy: processing {filename}", file=sys.stderr)
         yield filename
 
 
-def compute_config_id(args: SlypArgs) -> str:
+def compute_config_id(args: SlypRequest) -> str:
     # now we get the codes which are defined, convert to a string
     all_codes: str = json.dumps(sorted(CODE_MAP.keys()))
     # get the enabled/disabled codes, and make that a string
@@ -143,7 +129,7 @@ def compute_config_id(args: SlypArgs) -> str:
     return config_hash.hexdigest()
 
 
-def compute_evaluation_signature(contract_version: str, args: SlypArgs) -> str:
+def compute_evaluation_signature(contract_version: str, args: SlypRequest) -> str:
     return f"contract:{contract_version}/config_id:{compute_config_id(args)}"
 
 

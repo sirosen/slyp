@@ -4,7 +4,7 @@ import re
 
 from slyp.codes import CODE_MAP
 from slyp.hashable_file import HashableFile
-from slyp.result import Message, Result
+from slyp.models import Message, Result
 
 from .abstract import run_ast_checkers
 from .concrete import run_cst_checkers
