@@ -7,6 +7,8 @@ import textwrap
 
 _CACHEDIR = ".slyp_cache"
 
+_SCHEMA_VERSION = "1"
+
 
 class CacheInitializer:
     def __init__(
@@ -40,12 +42,38 @@ class CacheInitializer:
 
     def ensure_db_exists(self) -> None:
         self.init_dir()
+        if self.filepath.exists() and not self._db_is_ok():
+            self._remove_db()
         if not self.filepath.exists():
             conn = self.create_writer_connection()
             try:
                 self._provision_db(conn)
             finally:
                 conn.close()
+
+    def _db_is_ok(self) -> bool:
+        conn = self.create_reader_connection()
+        try:
+            cursor = conn.execute(
+                "SELECT value FROM slyp_db_metadata "
+                "WHERE attribute = 'database_schema_version' "
+                "LIMIT 1"
+            )
+            result = cursor.fetchone()
+            cursor.close()
+            # if the schema version doesn't match our expectation, it's no good
+            return bool(result[0] == _SCHEMA_VERSION)
+        except sqlite3.DatabaseError:
+            return False
+        finally:
+            conn.close()
+
+    def _remove_db(self) -> None:
+        """remove the DB and any additional sqlite datafiles"""
+        self.filepath.unlink(missing_ok=True)
+        for suffix in ("wal", "shm"):
+            target = self.filepath.with_name(f"{self.filepath.name}-{suffix}")
+            target.unlink(missing_ok=True)
 
     def _provision_db(self, conn: sqlite3.Connection) -> None:
         # currently, the tables are:
@@ -71,6 +99,6 @@ class CacheInitializer:
         # also mark the "database schema version" to handle graceful upgrades
         conn.executemany(
             "INSERT INTO slyp_db_metadata(attribute, value) VALUES (?, ?)",
-            [("database_schema_version", "1")],
+            [("database_schema_version", _SCHEMA_VERSION)],
         )
         conn.commit()
