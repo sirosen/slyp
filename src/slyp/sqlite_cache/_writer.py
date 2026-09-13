@@ -1,10 +1,7 @@
-import contextlib
 import sqlite3
 import sys
 import types
-import typing as t
 
-from ..hashable_file import HashableFile
 from ._initializer import CacheInitializer
 
 if sys.version_info >= (3, 11):
@@ -12,34 +9,33 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
+_COMMIT_BATCH_SIZE: int = 100
+
 
 class FileCacheWriter:
     def __init__(self, conn: sqlite3.Connection, signature: str) -> None:
         self.conn = conn
         self.signature = signature
-
-    def write(self, item: HashableFile) -> None:
-        self.add_sha(item.sha)
+        self._batch_counter: int = 0
 
     def add_sha(self, sha: str) -> None:
-        with self._suppress_unique_constraint_errors():
-            cursor = self.conn.execute(
-                "INSERT INTO passing_file_hashes VALUES (?, ?)",
-                (sha, self.signature),
-            )
-            cursor.close()
+        # no commit here -- the inserts accumulate in a single transaction which is
+        # committed on close, rather than paying a commit per file
+        cursor = self.conn.execute(
+            "INSERT OR IGNORE INTO passing_file_hashes VALUES (?, ?)",
+            (sha, self.signature),
+        )
+        cursor.close()
+        self._incr_or_commit()
+
+    def _incr_or_commit(self) -> None:
+        self._batch_counter += 1
+        if self._batch_counter >= _COMMIT_BATCH_SIZE:
+            self._batch_counter = 0
             self.conn.commit()
 
-    @contextlib.contextmanager
-    def _suppress_unique_constraint_errors(self) -> t.Iterator[None]:
-        try:
-            yield
-        except sqlite3.IntegrityError as e:
-            if str(e).startswith("UNIQUE constraint failed"):
-                return
-            raise
-
     def close(self) -> None:
+        self.conn.commit()
         self.conn.close()
 
     def __enter__(self) -> Self:

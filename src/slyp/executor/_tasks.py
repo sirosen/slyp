@@ -5,11 +5,7 @@ from slyp.constants import ValidMode
 from slyp.fixer import fix_file
 from slyp.hashable_file import HashableFile
 from slyp.models import Message, Result
-from slyp.sqlite_cache import (
-    FileCacheReader,
-    FileCacheWriter,
-    MultiprocessWriteHandle,
-)
+from slyp.sqlite_cache import FileCacheReader
 
 
 def process_file(
@@ -18,7 +14,7 @@ def process_file(
     disabled_codes: set[str],
     enabled_codes: set[str],
     cache_reader: FileCacheReader | None = None,
-    cache_writer: FileCacheWriter | MultiprocessWriteHandle | None = None,
+    cache_results: bool = False,
 ) -> Result:
     result = Result(success=True, messages=[])
     file_obj = HashableFile(filename)
@@ -41,6 +37,6 @@ def process_file(
 
     # results are only cached in the default mode because the mode is not
     # part of the signature (unclear whether or not it should be)
-    if cache_writer and result.success and mode == "default":
-        cache_writer.write(file_obj)
+    if cache_results and result.success and mode == "default":
+        result.cache_write_sha = file_obj.sha
     return result

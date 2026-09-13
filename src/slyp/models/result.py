@@ -7,6 +7,9 @@ import dataclasses
 class Result:
     messages: list[Message]
     success: bool
+    # this is the file SHA, but it is only set if the worker determines that the SHA
+    # should be written to the cache
+    cache_write_sha: str | None = None
 
     @property
     def message_strings(self) -> list[str]:
