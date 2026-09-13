@@ -21,14 +21,15 @@ class FileCacheReader:
     def contains_file(self, file: HashableFile) -> bool:
         cursor = self.conn.execute(
             (
-                "SELECT COUNT(*) FROM passing_file_hashes "
-                "WHERE file_content_sha=? AND evaluation_signature=?"
+                "SELECT 1 FROM passing_file_hashes "
+                "WHERE file_content_sha=? AND evaluation_signature=? "
+                "LIMIT 1"
             ),
             (file.sha, self.signature),
         )
-        result = cursor.fetchone()[0]
+        result = cursor.fetchone()
         cursor.close()
-        return result != 0  # type: ignore[no-any-return]
+        return result is not None
 
     def close(self) -> None:
         self.conn.close()
