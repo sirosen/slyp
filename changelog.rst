@@ -7,9 +7,9 @@ Unreleased
 .. changelog-unreleased-marker
 
 - Convert the cache from a directory of files to a sqlite database.
-- Several performance enhancements have been applied, resulting in better
-  performance when `--no-cache` is used or when a warm cache is present.
-  There is no significant change for a cold cache without `--no-cache`.
+- Several performance enhancements have been applied. These should result in
+  better performance with and without caching, and whether or not the cache
+  is warm.
 
 0.9.0
 -----
