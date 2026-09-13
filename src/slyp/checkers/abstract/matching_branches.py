@@ -164,7 +164,7 @@ class FindEquivalentBranchesVisitor(ErrorRecordingVisitor):
             raise ValueError(
                 f"Attempted to record error on node with no 'lineno': {node}"
             )
-        self.errors.add((node.lineno, self.filename, result_to_code(result)))
+        self.errors.add((node.lineno, result_to_code(result)))
 
     def visit_Try(self, node: ast.Try) -> None:
         all_body_nodes: list[list[ast.stmt]] = [node.body]
@@ -176,7 +176,7 @@ class FindEquivalentBranchesVisitor(ErrorRecordingVisitor):
             all_body_nodes.append(node.finalbody)
 
         if r := product_compare_ast(all_body_nodes):
-            self.errors.add((node.lineno, self.filename, result_to_code(r)))
+            self.errors.add((node.lineno, result_to_code(r)))
 
         self.generic_visit(node)
 
