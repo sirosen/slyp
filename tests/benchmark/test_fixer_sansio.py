@@ -2,7 +2,13 @@ import pytest
 
 from slyp.fixer import _fix_data
 
+from .corpus import MODULES
+
 
 @pytest.mark.benchmark
-def test_benchmark_fix(benchmark, stdlib_module_source):
-    benchmark(_fix_data, stdlib_module_source)
+@pytest.mark.parametrize(
+    "module", ("stdlib_csv", "stdlib_textwrap", "trivial", "small", "simple_cli_parser")
+)
+def test_benchmark_fix(benchmark, module):
+    data = MODULES[module]
+    benchmark(_fix_data, data)
