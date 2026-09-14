@@ -18,6 +18,17 @@ class ErrorCollector(libcst.CSTVisitor):
         # lazy position metadata
         self.positions = LazyCSTNodePositions(module)
 
+    # explicitly disable attribute visiting to save work
+    def on_visit_attribute(self, node: libcst.CSTNodeT, attribute: str) -> None:
+        pass
+
+    def on_leave_attribute(self, node: libcst.CSTNodeT, attribute: str) -> None:
+        pass
+
+    # simplify on_leave as a micro-optimization
+    def on_leave(self, original_node: libcst.CSTNodeT) -> None:
+        pass
+
     def visit_ConcatenatedString(self, node: libcst.ConcatenatedString) -> None:
         # check for 'unnecessary string concat' situations
         # e.g.

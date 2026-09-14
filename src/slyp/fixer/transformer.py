@@ -148,6 +148,13 @@ class SlypTransformer(libcst.CSTTransformer):
                 return new_updated_node
         return updated_node
 
+    # explicitly disable attribute visiting to save work
+    def on_visit_attribute(self, node: libcst.CSTNodeT, attribute: str) -> None:
+        pass
+
+    def on_leave_attribute(self, node: libcst.CSTNodeT, attribute: str) -> None:
+        pass
+
     def _node_is_disabled(self, node: libcst.CSTNode) -> bool:
         if not self.disabled_line_ranges:
             return False
