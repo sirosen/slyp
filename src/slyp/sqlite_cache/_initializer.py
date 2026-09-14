@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import os
 import pathlib
 import sqlite3
 import textwrap
@@ -34,7 +35,6 @@ class CacheInitializer:
 
     def create_writer_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self.filepath))
-        conn.executescript("PRAGMA journal_mode=WAL;")
         return conn
 
     def create_reader_connection(self) -> sqlite3.Connection:
@@ -42,14 +42,29 @@ class CacheInitializer:
 
     def ensure_db_exists(self) -> None:
         self.init_dir()
+
         if not self.filepath.exists():
-            conn = self.create_writer_connection()
+            tmp_db_path = self.cache_dir / f"_init_{os.getpid()}.db"
             try:
-                self._provision_db(conn)
+                conn = sqlite3.connect(str(tmp_db_path), isolation_level=None)
+                try:
+                    self._provision_db(conn)
+                finally:
+                    conn.close()
+
+                # try to atomically move the new DB into place, but on failure assume a
+                # parallel run did the same work
+                try:
+                    os.link(tmp_db_path, self.filepath)
+                except FileExistsError:
+                    pass
             finally:
-                conn.close()
+                tmp_db_path.unlink(missing_ok=True)
 
     def _provision_db(self, conn: sqlite3.Connection) -> None:
+        # set persistent pragmas
+        conn.executescript("PRAGMA journal_mode=WAL;")
+        conn.executescript("PRAGMA synchronous=NORMAL;")
         # currently, the tables are:
         # - file_hashes (the data we care about)
         # - slyp_db_metadata (config values, like schema versions)
