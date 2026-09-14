@@ -5,6 +5,8 @@ Unreleased
 ----------
 
 .. changelog-unreleased-marker
+- Fix batched cache writes to avoid excessive contention on the DB
+- Fix handling of errors during worker pool execution
 
 0.10.2
 ------
