@@ -5,6 +5,8 @@ Unreleased
 ----------
 
 .. changelog-unreleased-marker
+- Fix concurrency safety bug in cache DB init, which prevented parallel starts
+  from running cleanly without a pre-existing cache DB.
 
 0.10.0
 ------

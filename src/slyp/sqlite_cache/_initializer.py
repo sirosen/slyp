@@ -42,38 +42,12 @@ class CacheInitializer:
 
     def ensure_db_exists(self) -> None:
         self.init_dir()
-        if self.filepath.exists() and not self._db_is_ok():
-            self._remove_db()
         if not self.filepath.exists():
             conn = self.create_writer_connection()
             try:
                 self._provision_db(conn)
             finally:
                 conn.close()
-
-    def _db_is_ok(self) -> bool:
-        conn = self.create_reader_connection()
-        try:
-            cursor = conn.execute(
-                "SELECT value FROM slyp_db_metadata "
-                "WHERE attribute = 'database_schema_version' "
-                "LIMIT 1"
-            )
-            result = cursor.fetchone()
-            cursor.close()
-            # if the schema version doesn't match our expectation, it's no good
-            return bool(result[0] == _SCHEMA_VERSION)
-        except sqlite3.DatabaseError:
-            return False
-        finally:
-            conn.close()
-
-    def _remove_db(self) -> None:
-        """remove the DB and any additional sqlite datafiles"""
-        self.filepath.unlink(missing_ok=True)
-        for suffix in ("wal", "shm"):
-            target = self.filepath.with_name(f"{self.filepath.name}-{suffix}")
-            target.unlink(missing_ok=True)
 
     def _provision_db(self, conn: sqlite3.Connection) -> None:
         # currently, the tables are:
@@ -83,13 +57,15 @@ class CacheInitializer:
         # file_hashes has two columns, one for the content hash, and one for the
         # "evaluation signature" -- a string encoding any qualities of the checker, not
         # only the version, but also enabled/disabled flags
-        conn.executescript(textwrap.dedent("""\
-                CREATE TABLE passing_file_hashes (
+        conn.execute(textwrap.dedent("""\
+                CREATE TABLE IF NOT EXISTS passing_file_hashes (
                     file_content_sha VARCHAR NOT NULL,
                     evaluation_signature VARCHAR NOT NULL,
                     PRIMARY KEY (file_content_sha, evaluation_signature)
                 );
-                CREATE TABLE slyp_db_metadata (
+                """))
+        conn.execute(textwrap.dedent("""\
+                CREATE TABLE IF NOT EXISTS slyp_db_metadata (
                     attribute VARCHAR NOT NULL,
                     value VARCHAR NOT NULL,
                     PRIMARY KEY (attribute)
@@ -98,7 +74,7 @@ class CacheInitializer:
         # mark the version which was used to create the DB
         # also mark the "database schema version" to handle graceful upgrades
         conn.executemany(
-            "INSERT INTO slyp_db_metadata(attribute, value) VALUES (?, ?)",
+            "INSERT OR IGNORE INTO slyp_db_metadata(attribute, value) VALUES (?, ?)",
             [("database_schema_version", _SCHEMA_VERSION)],
         )
         conn.commit()

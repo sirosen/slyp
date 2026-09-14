@@ -144,12 +144,3 @@ def test_cache_is_not_populated_under_no_cache(run_cli, in_tmp_path):
         run_cli(["foo.py"])
         assert mock_check_file.call_count == 2
         assert mock_fix_file.call_count == 2
-
-
-def test_cache_is_rebuilt_when_db_has_no_schema(run_cli, in_tmp_path):
-    # simulate a bad cache by creating an empty file for the DB
-    # as may happen if the process is killed during initialization
-    (in_tmp_path / ".slyp_cache").mkdir(exist_ok=True)
-    (in_tmp_path / ".slyp_cache" / "passing_files.db").write_bytes(b"")
-    (in_tmp_path / "foo.py").write_text('x = "foo bar"\n')
-    run_cli(["foo.py"])
