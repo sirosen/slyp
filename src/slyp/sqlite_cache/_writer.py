@@ -9,33 +9,33 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
-_COMMIT_BATCH_SIZE: int = 100
+_BATCH_SIZE: int = 100
 
 
 class FileCacheWriter:
     def __init__(self, conn: sqlite3.Connection, signature: str) -> None:
         self.conn = conn
         self.signature = signature
-        self._batch_counter: int = 0
+        self._pending: list[str] = []
 
     def add_sha(self, sha: str) -> None:
-        # no commit here -- the inserts accumulate in a single transaction which is
-        # committed on close, rather than paying a commit per file
-        cursor = self.conn.execute(
+        self._pending.append(sha)
+        if len(self._pending) >= _BATCH_SIZE:
+            self.flush()
+
+    def flush(self) -> None:
+        if not self._pending:
+            return
+        cursor = self.conn.executemany(
             "INSERT OR IGNORE INTO passing_file_hashes VALUES (?, ?)",
-            (sha, self.signature),
+            [(sha, self.signature) for sha in self._pending],
         )
         cursor.close()
-        self._incr_or_commit()
-
-    def _incr_or_commit(self) -> None:
-        self._batch_counter += 1
-        if self._batch_counter >= _COMMIT_BATCH_SIZE:
-            self._batch_counter = 0
-            self.conn.commit()
+        self.conn.commit()
+        self._pending.clear()
 
     def close(self) -> None:
-        self.conn.commit()
+        self.flush()
         self.conn.close()
 
     def __enter__(self) -> Self:
