@@ -42,10 +42,9 @@ def fix_file(file_obj: HashableFile) -> Result:
 
 def _fix_data(content: bytes) -> tuple[bytes, libcst.Module]:
     disabled_line_ranges = _find_disabled_ranges(content)
-    raw_tree = libcst.parse_module(content)
-    wrapped_tree = libcst.MetadataWrapper(raw_tree, unsafe_skip_copy=True)
+    module = libcst.parse_module(content)
 
-    tree = wrapped_tree.visit(SlypTransformer(disabled_line_ranges))
+    tree = module.visit(SlypTransformer(module, disabled_line_ranges))
 
     return tree.code.encode(tree.encoding), tree
 
