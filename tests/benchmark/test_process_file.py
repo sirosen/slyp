@@ -3,8 +3,6 @@ Benchmark the per-file pipeline encoded into the executor's `process_file()`.
 """
 
 import contextlib
-import functools
-import inspect
 import typing as t
 from unittest import mock
 
@@ -13,11 +11,7 @@ import pytest
 from slyp.executor._tasks import process_file
 from slyp.hashable_file import HashableFile
 
-
-@functools.cache
-def _read_source(modname: str) -> bytes:
-    mod = __import__(modname)
-    return inspect.getsource(mod).encode()
+from .corpus import MODULES
 
 
 @contextlib.contextmanager
@@ -35,17 +29,18 @@ def _patch_file_io_operations(read_content: bytes) -> t.Iterator[None]:
     ("modname", "num_copies"),
     (
         # larger modules, run on one copy
-        ("textwrap", 1),
-        ("csv", 1),
+        ("stdlib_textwrap", 1),
+        ("stdlib_csv", 1),
+        ("simple_cli_parser", 1),
         # small modules, run "many" times
-        ("warnings", 1),
-        ("warnings", 5),
-        ("signal", 1),
-        ("signal", 5),
+        ("trivial", 1),
+        ("trivial", 5),
+        ("small", 1),
+        ("small", 5),
     ),
 )
 def test_benchmark_process_files(benchmark, modname, num_copies):
-    src = _read_source(modname)
+    src = MODULES[modname]
 
     with _patch_file_io_operations(src):
 
