@@ -64,7 +64,7 @@ cog.outl("```")
 ]]]-->
 ```yaml
 - repo: https://github.com/sirosen/slyp
-  rev: 0.10.0
+  rev: 0.10.1
   hooks:
     - id: slyp
 ```
