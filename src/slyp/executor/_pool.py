@@ -3,11 +3,18 @@ from __future__ import annotations
 import multiprocessing
 import os
 import queue
+import sys
+import types
 import typing as t
 
 from slyp.models import Message, Result
 
 from ._worker import SlypWorker
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 # how long to wait on the result queue before checking that the workers are still alive
 _POLL_INTERVAL = 0.1
@@ -36,34 +43,13 @@ class WorkerPool:
 
     def run(self, filenames: t.Iterable[str]) -> t.Iterator[Result]:
         """Process every filename, yielding results in completion order."""
-        task_queue: multiprocessing.Queue[str | None] = self.mp_ctx.Queue()
-        result_queue: multiprocessing.Queue[Result] = self.mp_ctx.Queue()
+        with _PoolRunResources(self.mp_ctx) as resources:
+            resources.start_procs(self.num_workers, self.worker.run)
+            num_tasks = resources.submit_work(filenames)
 
-        # each worker gets its own copy of `self.worker`, whose `initialize` then runs
-        # in that process -- so per-worker resources are never shared between them
-        processes = [
-            # type ignore: BaseContext does not define Process, but all subtypes do
-            self.mp_ctx.Process(  # type: ignore[attr-defined]
-                target=self.worker.run, args=(task_queue, result_queue)
+            yield from self._collect_results(
+                resources.result_queue, num_tasks, resources.processes
             )
-            for _ in range(self.num_workers)
-        ]
-        for process in processes:
-            process.start()
-
-        try:
-            num_tasks = 0
-            for filename in filenames:
-                task_queue.put(filename)
-                num_tasks += 1
-
-            for _ in processes:
-                task_queue.put(None)
-
-            yield from self._collect_results(result_queue, num_tasks, processes)
-        finally:
-            for process in processes:
-                process.join()
 
     def _collect_results(
         self,
@@ -99,3 +85,57 @@ class WorkerPool:
 
             remaining -= 1
             yield result
+
+
+class _PoolRunResources:
+    def __init__(self, mp_ctx: multiprocessing.context.BaseContext) -> None:
+        self.mp_ctx = mp_ctx
+        self.task_queue: multiprocessing.Queue[str | None] = self.mp_ctx.Queue()
+        self.result_queue: multiprocessing.Queue[Result] = self.mp_ctx.Queue()
+        self.processes: list[multiprocessing.Process] = []
+
+    def start_procs(self, num_workers: int, target: t.Callable[..., t.Any]) -> None:
+        # type ignore: BaseContext does not define Process, but all subtypes do
+        self.processes.extend(
+            # type ignore: BaseContext does not define Process, but all subtypes do
+            self.mp_ctx.Process(  # type: ignore[attr-defined]
+                target=target, args=(self.task_queue, self.result_queue)
+            )
+            for _ in range(num_workers)
+        )
+        for process in self.processes:
+            process.start()
+
+    def submit_work(self, work_items: t.Iterable[str]) -> int:
+        num_tasks = 0
+        for item in work_items:
+            self.task_queue.put(item)
+            num_tasks += 1
+
+        for _ in self.processes:
+            self.task_queue.put(None)
+
+        return num_tasks
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        traceback: types.TracebackType | None,
+    ) -> None:
+        if exc_val:
+            self._close_on_error()
+        self._close()
+
+    def _close_on_error(self) -> None:
+        for process in self.processes:
+            process.terminate()
+        self.task_queue.cancel_join_thread()
+        self.result_queue.cancel_join_thread()
+
+    def _close(self) -> None:
+        for process in self.processes:
+            process.join()
