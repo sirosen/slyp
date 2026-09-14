@@ -6,6 +6,11 @@ Unreleased
 
 .. changelog-unreleased-marker
 
+0.10.2
+------
+
+- Further improve concurrency safety of cache DB init.
+
 0.10.1
 ------
 

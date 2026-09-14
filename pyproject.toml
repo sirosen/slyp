@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "slyp"
-version = "0.10.1"
+version = "0.10.2"
 description = "Stephen Lints Your Python"
 readme = "README.md"
 requires-python = ">=3.10"
