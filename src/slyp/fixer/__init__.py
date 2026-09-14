@@ -44,8 +44,11 @@ def _fix_data(content: bytes) -> tuple[bytes, libcst.Module]:
     disabled_line_ranges = _find_disabled_ranges(content)
     module = libcst.parse_module(content)
 
-    tree = module.visit(SlypTransformer(module, disabled_line_ranges))
+    transformer = SlypTransformer(module, disabled_line_ranges)
+    tree = module.visit(transformer)
 
+    if not transformer.made_changes:
+        return content, tree
     return tree.code.encode(tree.encoding), tree
 
 

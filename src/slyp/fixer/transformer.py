@@ -119,6 +119,7 @@ class SlypTransformer(libcst.CSTTransformer):
     def __init__(
         self, module: libcst.Module, disabled_line_ranges: list[tuple[int, int | float]]
     ) -> None:
+        self.made_changes: bool = False
         self.disabled_line_ranges = disabled_line_ranges
         # this stack of nodes acts similarly to the parent node metadata, but is
         # significantly more efficient
@@ -141,11 +142,9 @@ class SlypTransformer(libcst.CSTTransformer):
         | libcst.FlattenSentinel[libcst.CSTNodeT]
     ):
         self.ancestors.pop()
-        new_updated_node = super().on_leave(original_node, updated_node)
-        if new_updated_node != updated_node:
-            # if the node has been updated, check if disabled
-            if not self._node_is_disabled(original_node):
-                return new_updated_node
+        # check if disabled before doing any work
+        if not self._node_is_disabled(original_node):
+            return super().on_leave(original_node, updated_node)
         return updated_node
 
     # explicitly disable attribute visiting to save work
@@ -235,6 +234,8 @@ class SlypTransformer(libcst.CSTTransformer):
             num_parens_to_unwrap -= 1
         if num_parens_to_unwrap <= 0:
             return updated_node
+
+        self.made_changes = True
         return updated_node.with_changes(  # type: ignore[return-value]
             lpar=updated_node.lpar[:-num_parens_to_unwrap],
             rpar=updated_node.rpar[num_parens_to_unwrap:],
@@ -274,6 +275,7 @@ class SlypTransformer(libcst.CSTTransformer):
                 right=concat_nodes[idx + 1],
             )
 
+        self.made_changes = True
         return concat_nodes[0].with_changes(  # type: ignore[return-value]
             lpar=[
                 libcst.LeftParen(
@@ -288,6 +290,7 @@ class SlypTransformer(libcst.CSTTransformer):
         )
 
     def refold_element_list(self, node: CollectionLiteralNode) -> CollectionLiteralNode:
+        self.made_changes = True
         return node.with_changes(  # type: ignore[return-value]
             elements=[
                 (
@@ -376,6 +379,7 @@ class SlypTransformer(libcst.CSTTransformer):
         ):
             return updated_node
 
+        self.made_changes = True
         return libcst.Dict(
             elements=[_convert_dict_element(arg) for arg in updated_node.args],
             lpar=updated_node.lpar,
@@ -416,6 +420,7 @@ class SlypTransformer(libcst.CSTTransformer):
             ),
         ):
             arg0: libcst.Call = updated_node.args[0].value  # type: ignore[assignment]
+            self.made_changes = True
             if arg0.func.value == "tuple":  # type: ignore[attr-defined]
                 updated_node = updated_node.with_changes(args=arg0.args)
             else:
@@ -429,6 +434,7 @@ class SlypTransformer(libcst.CSTTransformer):
                 args=[],
             ),
         ):
+            self.made_changes = True
             return libcst.List(
                 elements=[], lpar=updated_node.lpar, rpar=updated_node.rpar
             )
@@ -448,6 +454,7 @@ class SlypTransformer(libcst.CSTTransformer):
             genexp: libcst.GeneratorExp = updated_node.args[
                 0
             ].value  # type: ignore[assignment]
+            self.made_changes = True
             return libcst.ListComp(
                 elt=genexp.elt,
                 for_in=genexp.for_in,
@@ -460,7 +467,7 @@ class SlypTransformer(libcst.CSTTransformer):
     def _fix_tuple_call(
         self, original_node: libcst.Call, updated_node: libcst.Call
     ) -> libcst.Call | libcst.Tuple:
-        # a 'list()' call with no arguments
+        # a 'tuple()' call with no arguments
         if libcst.matchers.matches(
             updated_node,
             libcst.matchers.Call(
@@ -470,6 +477,7 @@ class SlypTransformer(libcst.CSTTransformer):
         ):
             lpar = updated_node.lpar if updated_node.lpar else [libcst.LeftParen()]
             rpar = updated_node.rpar if updated_node.rpar else [libcst.RightParen()]
+            self.made_changes = True
             return libcst.Tuple(elements=[], lpar=lpar, rpar=rpar)
 
         return updated_node
@@ -504,6 +512,7 @@ class SlypTransformer(libcst.CSTTransformer):
             ),
         ):
             arg0: libcst.Call = updated_node.args[0].value  # type: ignore[assignment]
+            self.made_changes = True
             if not arg0.args:
                 # if we are seeing no args, like `set(set())`, that's just `set()`
                 updated_node = updated_node.with_changes(args=[])
@@ -531,6 +540,7 @@ class SlypTransformer(libcst.CSTTransformer):
             genexp: libcst.GeneratorExp = updated_node.args[
                 0
             ].value  # type: ignore[assignment]
+            self.made_changes = True
             return libcst.SetComp(
                 elt=genexp.elt,
                 for_in=genexp.for_in,
@@ -558,6 +568,7 @@ class SlypTransformer(libcst.CSTTransformer):
                 ],
             ),
         ):
+            self.made_changes = True
             return updated_node.with_changes(args=[])
 
         return updated_node
@@ -586,6 +597,7 @@ class SlypTransformer(libcst.CSTTransformer):
                 value=UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER,
             ),
         ):
+            self.made_changes = True
             return updated_node.with_changes(
                 value=self.refold_and_parenthesize_str_concat_node(
                     updated_node.value  # type: ignore[arg-type]
@@ -597,6 +609,7 @@ class SlypTransformer(libcst.CSTTransformer):
         self, original_node: libcst.DictElement, updated_node: libcst.DictElement
     ) -> libcst.DictElement:
         if original_node.whitespace_after_colon.empty:
+            self.made_changes = True
             updated_node = updated_node.with_changes(
                 whitespace_after_colon=libcst.SimpleWhitespace(" ")
             )
@@ -604,6 +617,7 @@ class SlypTransformer(libcst.CSTTransformer):
             original_node.value,
             UNPARENTHESIZED_MULTILINE_CONCATENATED_STRING_MATCHER,
         ):
+            self.made_changes = True
             updated_node = updated_node.with_changes(
                 value=self.refold_and_parenthesize_str_concat_node(
                     updated_node.value  # type: ignore[arg-type]
@@ -818,6 +832,7 @@ class SlypTransformer(libcst.CSTTransformer):
                 and left.quote == right.quote
                 and left.quote in {"'", '"'}
             ):
+                self.made_changes = True
                 return libcst.SimpleString(
                     lpar=new_node.lpar,
                     rpar=new_node.rpar,
@@ -850,6 +865,7 @@ class SlypTransformer(libcst.CSTTransformer):
                 and left_f.quote == right_f.quote
                 and left_f.quote in {"'", '"'}
             ):
+                self.made_changes = True
                 return libcst.FormattedString(
                     lpar=new_node.lpar,
                     rpar=new_node.rpar,
@@ -880,6 +896,7 @@ class SlypTransformer(libcst.CSTTransformer):
                 and "{" not in left.raw_value
                 and "}" not in left.raw_value
             ):
+                self.made_changes = True
                 return libcst.FormattedString(
                     lpar=new_node.lpar,
                     rpar=new_node.rpar,
@@ -912,6 +929,7 @@ class SlypTransformer(libcst.CSTTransformer):
                 and "{" not in right.raw_value
                 and "}" not in right.raw_value
             ):
+                self.made_changes = True
                 return libcst.FormattedString(
                     lpar=new_node.lpar,
                     rpar=new_node.rpar,
@@ -962,6 +980,7 @@ class SlypTransformer(libcst.CSTTransformer):
         if new_node.value is not None and (
             new_node.whitespace_after_yield.empty  # type: ignore[union-attr]
         ):
+            self.made_changes = True
             new_node = new_node.with_changes(
                 whitespace_after_yield=libcst.SimpleWhitespace(" ")
             )
@@ -1023,6 +1042,7 @@ class SlypTransformer(libcst.CSTTransformer):
             if libcst.matchers.matches(
                 original_node.body, libcst.matchers.Name(var_name)
             ):
+                self.made_changes = True
                 new_node = new_node.with_changes(
                     body=new_node.body.with_changes(value="None")
                 )
@@ -1044,6 +1064,7 @@ class SlypTransformer(libcst.CSTTransformer):
             if libcst.matchers.matches(
                 original_node.orelse, libcst.matchers.Name(var_name)
             ):
+                self.made_changes = True
                 new_node = new_node.with_changes(
                     orelse=new_node.orelse.with_changes(value="None")
                 )
@@ -1070,6 +1091,7 @@ class SlypTransformer(libcst.CSTTransformer):
         # ensures that `match(x): ...` converts to `match x: ...`
         if not original_node.whitespace_after_match.empty:
             return updated_node
+        self.made_changes = True
         return updated_node.with_changes(
             whitespace_after_match=libcst.SimpleWhitespace(" ")
         )
@@ -1085,6 +1107,7 @@ class SlypTransformer(libcst.CSTTransformer):
             changes["lpar"] = libcst.MaybeSentinel.DEFAULT
             changes["rpar"] = libcst.MaybeSentinel.DEFAULT
         if changes:
+            self.made_changes = True
             return updated_node.with_changes(**changes)
         return updated_node
 
@@ -1092,6 +1115,7 @@ class SlypTransformer(libcst.CSTTransformer):
         # inject whitespace if missing
         # ensures that `if(x): ...` converts to `if x: ...`
         if original_node.whitespace_before_test.empty:
+            self.made_changes = True
             updated_node = updated_node.with_changes(
                 whitespace_before_test=libcst.SimpleWhitespace(" ")
             )
@@ -1132,6 +1156,7 @@ class SlypTransformer(libcst.CSTTransformer):
                 updated_return_node = return_node.with_changes(
                     value=libcst.Name("None")
                 )
+                self.made_changes = True
                 updated_node = updated_node.with_changes(
                     body=updated_node.body.with_changes(
                         body=[
@@ -1157,6 +1182,7 @@ class SlypTransformer(libcst.CSTTransformer):
                 ),
             ):
                 trailing_comment = original_node.body.trailing_whitespace.comment  # type: ignore[attr-defined]  # noqa: E501
+                self.made_changes = True
                 updated_node = updated_node.with_changes(
                     body=libcst.IndentedBlock(
                         body=[
@@ -1189,6 +1215,7 @@ class SlypTransformer(libcst.CSTTransformer):
         if libcst.matchers.matches(
             original_node, MISSING_RETURN_ANNOTATION_INIT_MATCHER
         ):
+            self.made_changes = True
             updated_node = updated_node.with_changes(
                 returns=libcst.Annotation(annotation=libcst.Name("None"))
             )
@@ -1204,6 +1231,7 @@ class SlypTransformer(libcst.CSTTransformer):
             changes["lpar"] = None
             changes["rpar"] = None
         if changes:
+            self.made_changes = True
             return updated_node.with_changes(**changes)
         return updated_node
 
