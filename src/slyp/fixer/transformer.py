@@ -5,6 +5,8 @@ import typing as t
 import libcst
 import libcst.matchers
 
+from slyp.lazy_cst import LazyCSTNodePositions
+
 # an __init__ definition missing the return type annotation
 MISSING_RETURN_ANNOTATION_INIT_MATCHER = libcst.matchers.FunctionDef(
     name=libcst.matchers.Name(value="__init__"), returns=None
@@ -114,13 +116,15 @@ CollectionLiteralNode = t.TypeVar(
 
 
 class SlypTransformer(libcst.CSTTransformer):
-    METADATA_DEPENDENCIES = (libcst.metadata.PositionProvider,)
-
-    def __init__(self, disabled_line_ranges: list[tuple[int, int | float]]) -> None:
+    def __init__(
+        self, module: libcst.Module, disabled_line_ranges: list[tuple[int, int | float]]
+    ) -> None:
         self.disabled_line_ranges = disabled_line_ranges
         # this stack of nodes acts similarly to the parent node metadata, but is
         # significantly more efficient
         self.ancestors: list[libcst.CSTNode] = []
+        # lazy position metadata
+        self.positions = LazyCSTNodePositions(module)
 
     def on_visit(self, node: libcst.CSTNode) -> bool:
         self.ancestors.append(node)
@@ -147,9 +151,7 @@ class SlypTransformer(libcst.CSTTransformer):
     def _node_is_disabled(self, node: libcst.CSTNode) -> bool:
         if not self.disabled_line_ranges:
             return False
-        start_line = self.get_metadata(
-            libcst.metadata.PositionProvider, node
-        ).start.line
+        start_line = self.positions.lookup(node).start.line
         for start, end in self.disabled_line_ranges:
             if start <= start_line < end:
                 return True
@@ -161,11 +163,11 @@ class SlypTransformer(libcst.CSTTransformer):
         if node.lpar is not None and libcst.matchers.matches(
             node.lpar, libcst.matchers.LeftParen()
         ):
-            lpar_line = self.get_metadata(
-                libcst.metadata.PositionProvider, node.lpar  # type: ignore[arg-type]
+            lpar_line = self.positions.lookup(
+                node.lpar  # type: ignore[arg-type]
             ).start.line
-            rpar_line = self.get_metadata(
-                libcst.metadata.PositionProvider, node.rpar  # type: ignore[arg-type]
+            rpar_line = self.positions.lookup(
+                node.rpar  # type: ignore[arg-type]
             ).start.line
             return lpar_line == rpar_line
 
@@ -180,12 +182,8 @@ class SlypTransformer(libcst.CSTTransformer):
         """
         max_offset = -1
         for offset in range(len(node.lpar)):
-            lpar_line = self.get_metadata(
-                libcst.metadata.PositionProvider, node.lpar[-(offset + 1)]
-            ).start.line
-            rpar_line = self.get_metadata(
-                libcst.metadata.PositionProvider, node.rpar[offset]
-            ).start.line
+            lpar_line = self.positions.lookup(node.lpar[-(offset + 1)]).start.line
+            rpar_line = self.positions.lookup(node.rpar[offset]).start.line
 
             if lpar_line != rpar_line:
                 break
