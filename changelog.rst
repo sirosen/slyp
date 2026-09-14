@@ -6,6 +6,9 @@ Unreleased
 
 .. changelog-unreleased-marker
 
+0.10.0
+------
+
 - Convert the cache from a directory of files to a sqlite database.
 - Several performance enhancements have been applied. These should result in
   better performance with and without caching, and whether or not the cache

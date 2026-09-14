@@ -26,7 +26,7 @@ Or as a pre-commit hook using the following ``pre-commit-config.yaml``:
 .. code-block:: yaml
 
     - repo: https://github.com/sirosen/slyp
-      rev: 0.9.0
+      rev: 0.10.0
       hooks:
         - id: slyp
 
